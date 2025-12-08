@@ -1,4 +1,4 @@
-# 🔐 LazySpringSecurity (LSS)
+# LazySpringSecurity (LSS)
 
 > **A lightweight, annotation-driven security framework that abstracts Spring Security complexity into a readable, developer-friendly DSL.**
 
@@ -8,20 +8,20 @@
 
 ---
 
-## ✨ Features
+## Features
 
-- 🎯 **Zero Configuration** - Works out of the box with sensible defaults
-- 📝 **Annotation-Driven** - Simple, readable annotations for security
-- 🔧 **Fluent DSL** - Optional configuration with builder pattern
-- 🔑 **JWT Support** - Built-in JWT authentication with refresh tokens
-- 🛡️ **Role & Permission Based** - Fine-grained access control
-- 🚀 **Spring Boot Native** - Seamless auto-configuration
-- 🧩 **Middleware Support** - Extensible request processing chain
-- 📊 **Rate Limiting** - Built-in rate limiting support
+- **Zero Configuration** - Works out of the box with sensible defaults
+- **Annotation-Driven** - Simple, readable annotations for security
+- **Fluent DSL** - Optional configuration with builder pattern
+- **JWT Support** - Built-in JWT authentication with refresh tokens
+- **Role & Permission Based** - Fine-grained access control
+- **Spring Boot Native** - Seamless auto-configuration
+- **Middleware Support** - Extensible request processing chain
+- **Rate Limiting** - Built-in rate limiting support
 
 ---
 
-## 📦 Installation
+## Installation
 
 ### Maven
 
@@ -41,7 +41,7 @@ implementation 'ao.sudojed:lazy-spring-security:1.0.0-SNAPSHOT'
 
 ---
 
-## 🚀 Quick Start
+## Quick Start
 
 ### 1. Enable LazySpringSecurity
 
@@ -118,7 +118,7 @@ lazy-security:
 
 ---
 
-## 📖 Annotations Reference
+## Annotations Reference
 
 ### `@Public`
 Marks an endpoint as publicly accessible (no authentication required).
@@ -213,7 +213,7 @@ public Results search(@RequestParam String q) { ... }
 
 ---
 
-## 🔧 Advanced Configuration
+## Advanced Configuration
 
 ### Fluent DSL Configuration
 
@@ -343,7 +343,7 @@ public class IpBlockMiddleware implements Middleware {
 
 ---
 
-## 🔑 JWT Authentication
+## JWT Authentication
 
 ### Generate Tokens
 
@@ -405,7 +405,7 @@ public void someMethod() {
 
 ---
 
-## ⚙️ Configuration Properties
+## Configuration Properties
 
 ```yaml
 lazy-security:
@@ -449,7 +449,7 @@ lazy-security:
 
 ---
 
-## 🆚 LazySpringSecurity vs Spring Security
+## LazySpringSecurity vs Spring Security
 
 | Feature | Spring Security | LazySpringSecurity |
 |---------|-----------------|-------------------|
@@ -501,16 +501,16 @@ public class MyApp { }
 
 ---
 
-## 📄 License
+## License
 
 MIT License - see [LICENSE](LICENSE) for details.
 
 ---
 
-## 🤝 Contributing
+## Contributing
 
 Contributions are welcome! Please read our contributing guidelines first.
 
 ---
 
-Made with ❤️ by Sudojed Team
+Made by Sudojed Team
