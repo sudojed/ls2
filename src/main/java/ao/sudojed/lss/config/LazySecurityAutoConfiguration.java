@@ -30,6 +30,7 @@ import org.springframework.web.method.support.HandlerMethodArgumentResolver;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 import ao.sudojed.lss.annotation.EnableLazySecurity;
+import ao.sudojed.lss.aspect.AuthEndpointAspect;
 import ao.sudojed.lss.aspect.LazySecurityAspect;
 import ao.sudojed.lss.aspect.RateLimitAspect;
 import ao.sudojed.lss.core.LazySecurityProperties;
@@ -200,6 +201,11 @@ public class LazySecurityAutoConfiguration implements ImportAware, WebMvcConfigu
     @Bean
     public LazySecurityAspect lazySecurityAspect() {
         return new LazySecurityAspect();
+    }
+
+    @Bean
+    public AuthEndpointAspect authEndpointAspect() {
+        return new AuthEndpointAspect();
     }
 
     @Bean
