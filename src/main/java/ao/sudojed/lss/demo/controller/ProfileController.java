@@ -12,17 +12,19 @@ import org.springframework.web.bind.annotation.*;
 import java.util.Map;
 
 /**
- * Controller de perfil do usuario.
+ * User profile controller.
  * 
- * Demonstra duas formas de acesso ao usuario:
+ * Demonstrates two ways to access the user:
  * 
- * 1. Via parametro LazyUser (injecao automatica):
+ * 1. Via LazyUser parameter (automatic injection):
  *    public Map<String, Object> getProfile(LazyUser user) { ... }
  * 
- * 2. Via facade Auth (estilo Laravel):
- *    Auth.user()     // obtem usuario
- *    Auth.id()       // obtem ID
- *    Auth.hasRole()  // verifica role
+ * 2. Via Auth facade (static access):
+ *    Auth.user()     // gets user
+ *    Auth.id()       // gets ID
+ *    Auth.hasRole()  // checks role
+ * 
+ * @author Sudojed Team
  */
 @RestController
 @RequestMapping("/api")
@@ -35,11 +37,11 @@ public class ProfileController {
     }
 
     /**
-     * Retorna o perfil do usuario logado.
+     * Returns the logged user's profile.
      * 
-     * Exemplo usando parametro LazyUser (forma tradicional)
+     * Example using LazyUser parameter (traditional way)
      * 
-     * Uso: GET /api/profile
+     * Usage: GET /api/profile
      * Header: Authorization: Bearer <token>
      */
     @Authenticated
@@ -56,20 +58,20 @@ public class ProfileController {
     }
 
     /**
-     * Retorna informacoes do usuario atual usando facade Auth.
+     * Returns current user information using Auth facade.
      * 
-     * Exemplo usando Auth facade (estilo Laravel):
-     * - Auth.user()    equivale a  Auth::user()
-     * - Auth.id()      equivale a  Auth::id()
-     * - Auth.isAdmin() equivale a  Auth::user()->isAdmin()
+     * Example using Auth facade (static access):
+     * - Auth.user()    gets current user
+     * - Auth.id()      gets user ID
+     * - Auth.isAdmin() checks admin status
      * 
-     * Uso: GET /api/me
+     * Usage: GET /api/me
      * Header: Authorization: Bearer <token>
      */
     @Authenticated
     @GetMapping("/me")
     public Map<String, Object> me() {
-        // Usa facade Auth (estilo Laravel) - sem precisar de parametro!
+        // Uses Auth facade - no parameter needed!
         return Map.of(
             "id", Auth.id(),
             "username", Auth.username(),
@@ -81,22 +83,22 @@ public class ProfileController {
     }
 
     /**
-     * Atualiza o perfil do usuario.
+     * Updates user profile.
      * 
-     * Uso: PUT /api/profile
+     * Usage: PUT /api/profile
      * Body: { "displayName": "John Doe", "email": "newemail@example.com" }
      */
     @LazySecured
     @PutMapping("/profile")
     public ResponseEntity<Map<String, Object>> updateProfile(@RequestBody Map<String, String> updates) {
-        // Usa Auth.id() para obter ID do usuario atual
+        // Uses Auth.id() to get current user ID
         User dbUser = userService.findById(Auth.id()).orElse(null);
         
         if (dbUser == null) {
             return ResponseEntity.notFound().build();
         }
 
-        // Atualiza campos
+        // Updates fields
         if (updates.containsKey("displayName")) {
             dbUser.setDisplayName(updates.get("displayName"));
         }
@@ -107,7 +109,7 @@ public class ProfileController {
         userService.save(dbUser);
 
         return ResponseEntity.ok(Map.of(
-            "message", "Perfil atualizado com sucesso!",
+            "message", "Profile updated successfully!",
             "user", Map.of(
                 "id", dbUser.getId(),
                 "username", dbUser.getUsername(),

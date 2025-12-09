@@ -7,23 +7,23 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Valida que o usuário atual é o dono do recurso.
- * Útil para endpoints onde o usuário só pode acessar seus próprios dados.
+ * Validates that the current user is the owner of the resource.
+ * Useful for endpoints where users can only access their own data.
  * 
- * <h2>Uso Básico</h2>
+ * <h2>Basic Usage</h2>
  * <pre>{@code
  * @Owner(field = "userId")
  * @GetMapping("/users/{userId}/orders")
  * public List<Order> getUserOrders(@PathVariable Long userId) { }
  * }</pre>
  * 
- * <h2>Com Bypass para Admin</h2>
+ * <h2>With Admin Bypass</h2>
  * <pre>{@code
  * @Owner(field = "id", adminBypass = true)
  * @PutMapping("/users/{id}")
  * public User updateUser(@PathVariable Long id, @RequestBody User user) {
- *     // Usuário pode editar apenas seu próprio perfil
- *     // Admin pode editar qualquer perfil
+ *     // User can only edit their own profile
+ *     // Admin can edit any profile
  * }
  * }</pre>
  *
@@ -35,29 +35,29 @@ import java.lang.annotation.Target;
 public @interface Owner {
 
     /**
-     * Nome do parâmetro/campo que contém o ID do dono.
-     * Pode ser path variable, request param, ou campo do body.
+     * Name of the parameter/field that contains the owner ID.
+     * Can be path variable, request param, or body field.
      */
     String field();
 
     /**
-     * Campo do principal que contém o ID do usuário.
-     * Padrão: "id"
+     * Field of the principal that contains the user ID.
+     * Default: "id"
      */
     String principalField() default "id";
 
     /**
-     * Roles que podem bypassar a verificação de ownership.
+     * Roles that can bypass the ownership verification.
      */
     String[] bypassRoles() default {"ADMIN"};
 
     /**
-     * Permite que ADMIN bypasse a verificação.
+     * Allows ADMIN to bypass the verification.
      */
     boolean adminBypass() default true;
 
     /**
-     * Mensagem de erro quando não é o dono.
+     * Error message when not the owner.
      */
     String message() default "You can only access your own resources";
 }

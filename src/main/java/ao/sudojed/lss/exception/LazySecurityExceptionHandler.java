@@ -20,8 +20,8 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
 /**
- * Handler unificado para erros de segurança do LazySpringSecurity.
- * Produz respostas JSON consistentes para erros de autenticação e autorização.
+ * Unified handler for LazySpringSecurity security errors.
+ * Produces consistent JSON responses for authentication and authorization errors.
  *
  * @author Sudojed Team
  */
@@ -47,7 +47,7 @@ public class LazySecurityExceptionHandler implements AuthenticationEntryPoint, A
     }
 
     /**
-     * Trata exceções do LazySpringSecurity.
+     * Handles LazySpringSecurity exceptions.
      */
     public void handleLazyException(HttpServletRequest request, HttpServletResponse response,
                                     LazySecurityException exception) throws IOException {

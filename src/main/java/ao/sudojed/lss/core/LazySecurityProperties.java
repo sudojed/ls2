@@ -6,9 +6,9 @@ import java.util.List;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 /**
- * Propriedades de configuração do LazySpringSecurity via application.yml.
+ * Configuration properties for LazySpringSecurity via application.yml.
  * 
- * <h2>Exemplo application.yml</h2>
+ * <h2>Example application.yml</h2>
  * <pre>{@code
  * lazy:
  *   security:
@@ -44,37 +44,37 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 public class LazySecurityProperties {
 
     /**
-     * Configurações JWT.
+     * JWT settings.
      */
     private Jwt jwt = new Jwt();
 
     /**
-     * Paths públicos sem autenticação.
+     * Public paths without authentication.
      */
     private List<String> publicPaths = new ArrayList<>();
 
     /**
-     * Role padrão para usuários autenticados.
+     * Default role for authenticated users.
      */
     private String defaultRole = "USER";
 
     /**
-     * Habilita proteção CSRF.
+     * Enables CSRF protection.
      */
     private boolean csrfEnabled = false;
 
     /**
-     * Configurações CORS.
+     * CORS settings.
      */
     private Cors cors = new Cors();
 
     /**
-     * Modo debug para logs detalhados.
+     * Debug mode for detailed logs.
      */
     private boolean debug = false;
 
     /**
-     * Paths que requerem HTTPS.
+     * Paths that require HTTPS.
      */
     private List<String> securePaths = new ArrayList<>();
 
@@ -140,8 +140,8 @@ public class LazySecurityProperties {
 
     public static class Jwt {
         private String secret = "";
-        private long expiration = 3600000L; // 1 hora
-        private long refreshExpiration = 604800000L; // 7 dias
+        private long expiration = 3600000L; // 1 hour
+        private long refreshExpiration = 604800000L; // 7 days
         private String header = "Authorization";
         private String prefix = "Bearer ";
         private String issuer = "lazy-spring-security";

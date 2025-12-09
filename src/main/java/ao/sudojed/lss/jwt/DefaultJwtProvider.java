@@ -25,8 +25,8 @@ import io.jsonwebtoken.MalformedJwtException;
 import io.jsonwebtoken.security.Keys;
 
 /**
- * Implementação padrão do JwtProvider usando JJWT.
- * Funciona out-of-the-box com configuração mínima.
+ * Default JwtProvider implementation using JJWT.
+ * Works out-of-the-box with minimal configuration.
  *
  * @author Sudojed Team
  */
@@ -50,15 +50,15 @@ public class DefaultJwtProvider implements JwtProvider {
 
     private SecretKey createSecretKey(String secret) {
         if (secret == null || secret.isBlank()) {
-            throw new LazySecurityException("JWT secret não configurado. Configure 'lazy.security.jwt.secret'");
+            throw new LazySecurityException("JWT secret not configured. Configure 'lazy.security.jwt.secret'");
         }
         
         byte[] keyBytes = secret.getBytes(StandardCharsets.UTF_8);
         
-        // Garante pelo menos 256 bits para HS256
+        // Ensures at least 256 bits for HS256
         if (keyBytes.length < 32) {
-            log.warn("JWT secret com menos de 256 bits. Recomendado usar pelo menos 32 caracteres.");
-            // Padding para garantir segurança mínima
+            log.warn("JWT secret with less than 256 bits. Recommended to use at least 32 characters.");
+            // Padding to ensure minimum security
             byte[] paddedKey = new byte[32];
             System.arraycopy(keyBytes, 0, paddedKey, 0, keyBytes.length);
             keyBytes = paddedKey;
@@ -84,7 +84,7 @@ public class DefaultJwtProvider implements JwtProvider {
         claims.put(CLAIM_PERMISSIONS, user.getPermissions());
         claims.put(CLAIM_TOKEN_TYPE, "access");
         
-        // Adiciona claims do usuário
+        // Add user claims
         claims.putAll(user.getClaims());
 
         JwtBuilder builder = Jwts.builder()
@@ -126,18 +126,18 @@ public class DefaultJwtProvider implements JwtProvider {
             
             String tokenType = claims.get(CLAIM_TOKEN_TYPE, String.class);
             if ("refresh".equals(tokenType)) {
-                throw new LazySecurityException("Refresh token não pode ser usado para autenticação");
+                throw new LazySecurityException("Refresh token cannot be used for authentication");
             }
 
             return buildUserFromClaims(claims);
         } catch (ExpiredJwtException e) {
-            throw new LazySecurityException("Token expirado", e);
+            throw new LazySecurityException("Token expired", e);
         } catch (MalformedJwtException e) {
-            throw new LazySecurityException("Token mal formatado", e);
+            throw new LazySecurityException("Malformed token", e);
         } catch (SecurityException e) {
-            throw new LazySecurityException("Assinatura do token inválida", e);
+            throw new LazySecurityException("Invalid token signature", e);
         } catch (Exception e) {
-            throw new LazySecurityException("Token inválido: " + e.getMessage(), e);
+            throw new LazySecurityException("Invalid token: " + e.getMessage(), e);
         }
     }
 
@@ -187,13 +187,13 @@ public class DefaultJwtProvider implements JwtProvider {
             
             String tokenType = claims.get(CLAIM_TOKEN_TYPE, String.class);
             if (!"refresh".equals(tokenType)) {
-                throw new LazySecurityException("Token fornecido não é um refresh token");
+                throw new LazySecurityException("Provided token is not a refresh token");
             }
 
             String userId = claims.getSubject();
             
-            // Cria um usuário básico para gerar novo token
-            // Em uma implementação real, você buscaria o usuário do banco
+            // Creates a basic user to generate new token
+            // In a real implementation, you would fetch the user from the database
             LazyUser user = LazyUser.builder()
                     .id(userId)
                     .username(userId)
@@ -201,7 +201,7 @@ public class DefaultJwtProvider implements JwtProvider {
 
             return generateToken(user);
         } catch (ExpiredJwtException e) {
-            throw new LazySecurityException("Refresh token expirado", e);
+            throw new LazySecurityException("Refresh token expired", e);
         }
     }
 
@@ -238,7 +238,7 @@ public class DefaultJwtProvider implements JwtProvider {
                     .collect(Collectors.toSet()));
         }
 
-        // Adiciona outros claims como claims customizados
+        // Add other claims as custom claims
         claims.forEach((key, value) -> {
             if (!isReservedClaim(key)) {
                 builder.claim(key, value);

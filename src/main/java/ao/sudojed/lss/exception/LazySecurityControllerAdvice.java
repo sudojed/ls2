@@ -13,8 +13,8 @@ import java.time.Instant;
 import java.util.Map;
 
 /**
- * Controller Advice para tratar exceções LSS lançadas pelos aspectos.
- * Converte exceções de segurança em respostas HTTP apropriadas.
+ * Controller Advice to handle LSS exceptions thrown by aspects.
+ * Converts security exceptions into appropriate HTTP responses.
  *
  * @author Sudojed Team
  */

@@ -5,8 +5,8 @@ import java.util.HashSet;
 import java.util.Set;
 
 /**
- * Modelo de usuário para demonstração.
- * Em uma aplicação real, seria uma entidade JPA.
+ * User model for demonstration.
+ * In a real application, this would be a JPA entity.
  */
 public class User {
     
@@ -32,7 +32,7 @@ public class User {
         this.passwordHash = passwordHash;
     }
 
-    // Getters e Setters
+    // Getters and Setters
 
     public String getId() {
         return id;

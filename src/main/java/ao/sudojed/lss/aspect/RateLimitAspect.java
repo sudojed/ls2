@@ -15,12 +15,12 @@ import ao.sudojed.lss.filter.RateLimitManager;
 import jakarta.servlet.http.HttpServletRequest;
 
 /**
- * Aspect para aplicar rate limiting em métodos anotados com @RateLimit.
+ * Aspect for applying rate limiting to methods annotated with @RateLimit.
  *
  * @author Sudojed Team
  */
 @Aspect
-@Order(50) // Executa antes do LazySecurityAspect
+@Order(50) // Executes before LazySecurityAspect
 public class RateLimitAspect {
 
     private final RateLimitManager rateLimitManager;
@@ -42,7 +42,7 @@ public class RateLimitAspect {
         MethodSignature signature = (MethodSignature) joinPoint.getSignature();
         Method method = signature.getMethod();
 
-        // Cria um HandlerMethod fake para o RateLimitManager
+        // Create a fake HandlerMethod for RateLimitManager
         HandlerMethod handlerMethod = new HandlerMethod(joinPoint.getTarget(), method);
         
         rateLimitManager.checkRateLimit(request, handlerMethod);

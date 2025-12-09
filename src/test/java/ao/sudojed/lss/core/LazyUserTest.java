@@ -10,12 +10,12 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 /**
- * Testes para LazyUser.
+ * Tests for LazyUser.
  */
 class LazyUserTest {
 
     @Test
-    @DisplayName("Deve criar usuário com builder")
+    @DisplayName("Should create user with builder")
     void shouldCreateUserWithBuilder() {
         // When
         LazyUser user = LazyUser.builder()
@@ -37,7 +37,7 @@ class LazyUserTest {
     }
 
     @Test
-    @DisplayName("Deve verificar role corretamente")
+    @DisplayName("Should check role correctly")
     void shouldCheckRoleCorrectly() {
         // Given
         LazyUser user = LazyUser.builder()
@@ -57,7 +57,7 @@ class LazyUserTest {
     }
 
     @Test
-    @DisplayName("Deve verificar hasAnyRole corretamente")
+    @DisplayName("Should check hasAnyRole correctly")
     void shouldCheckHasAnyRole() {
         // Given
         LazyUser user = LazyUser.builder()
@@ -73,7 +73,7 @@ class LazyUserTest {
     }
 
     @Test
-    @DisplayName("Deve verificar hasAllRoles corretamente")
+    @DisplayName("Should check hasAllRoles correctly")
     void shouldCheckHasAllRoles() {
         // Given
         LazyUser user = LazyUser.builder()
@@ -89,7 +89,7 @@ class LazyUserTest {
     }
 
     @Test
-    @DisplayName("Deve verificar permissões")
+    @DisplayName("Should check permissions")
     void shouldCheckPermissions() {
         // Given
         LazyUser user = LazyUser.builder()
@@ -105,7 +105,7 @@ class LazyUserTest {
     }
 
     @Test
-    @DisplayName("Deve identificar admin")
+    @DisplayName("Should identify admin")
     void shouldIdentifyAdmin() {
         // Given
         LazyUser admin = LazyUser.builder()
@@ -126,7 +126,7 @@ class LazyUserTest {
     }
 
     @Test
-    @DisplayName("Deve criar usuário anônimo")
+    @DisplayName("Should create anonymous user")
     void shouldCreateAnonymousUser() {
         // When
         LazyUser anonymous = LazyUser.anonymous();
@@ -139,7 +139,7 @@ class LazyUserTest {
     }
 
     @Test
-    @DisplayName("Deve normalizar roles com prefixo ROLE_")
+    @DisplayName("Should normalize roles with ROLE_ prefix")
     void shouldNormalizeRolesWithPrefix() {
         // Given
         LazyUser user = LazyUser.builder()
@@ -148,13 +148,13 @@ class LazyUserTest {
                 .roles("USER")
                 .build();
 
-        // Then - deve aceitar com ou sem prefixo
+        // Then - should accept with or without prefix
         assertTrue(user.hasRole("USER"));
         assertTrue(user.hasRole("ROLE_USER"));
     }
 
     @Test
-    @DisplayName("Deve retornar claim com valor padrão")
+    @DisplayName("Should return claim with default value")
     void shouldReturnClaimWithDefault() {
         // Given
         LazyUser user = LazyUser.builder()
@@ -169,7 +169,7 @@ class LazyUserTest {
     }
 
     @Test
-    @DisplayName("Deve verificar existência de claim")
+    @DisplayName("Should check claim existence")
     void shouldCheckClaimExistence() {
         // Given
         LazyUser user = LazyUser.builder()
@@ -184,7 +184,7 @@ class LazyUserTest {
     }
 
     @Test
-    @DisplayName("Deve implementar equals e hashCode baseado em id")
+    @DisplayName("Should implement equals and hashCode based on id")
     void shouldImplementEqualsAndHashCode() {
         // Given
         LazyUser user1 = LazyUser.builder().id("123").username("john").build();
@@ -192,8 +192,8 @@ class LazyUserTest {
         LazyUser user3 = LazyUser.builder().id("456").username("john").build();
 
         // Then
-        assertEquals(user1, user2); // mesmo id
-        assertNotEquals(user1, user3); // id diferente
+        assertEquals(user1, user2); // same id
+        assertNotEquals(user1, user3); // different id
         assertEquals(user1.hashCode(), user2.hashCode());
     }
 }

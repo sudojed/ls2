@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.*;
 
 /**
- * Controller de teste para demonstrar funcionalidades do LSS.
+ * Test controller to demonstrate LSS features.
  */
 @RestController
 @RequestMapping("/api")
@@ -19,7 +19,7 @@ public class TestController {
     @Autowired
     private JwtService jwtService;
 
-    // ========== Endpoints Públicos ==========
+    // ========== Public Endpoints ==========
 
     @Public
     @GetMapping("/public/health")
@@ -30,7 +30,7 @@ public class TestController {
     @Public
     @PostMapping("/public/login")
     public Map<String, Object> login(@RequestBody Map<String, String> credentials) {
-        // Simula validação de credenciais
+        // Simulates credential validation
         String username = credentials.get("username");
 
         LazyUser user = LazyUser.builder()
@@ -43,7 +43,7 @@ public class TestController {
         return tokens.toMap();
     }
 
-    // ========== Endpoints Protegidos ==========
+    // ========== Protected Endpoints ==========
 
     @LazySecured
     @GetMapping("/profile")
@@ -73,7 +73,7 @@ public class TestController {
         return Map.of("message", "Welcome to dashboard");
     }
 
-    // ========== Endpoints Admin ==========
+    // ========== Admin Endpoints ==========
 
     @Admin
     @GetMapping("/admin/users")

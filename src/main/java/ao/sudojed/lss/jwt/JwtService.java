@@ -6,16 +6,16 @@ import ao.sudojed.lss.core.LazySecurityProperties;
 import ao.sudojed.lss.core.LazyUser;
 
 /**
- * Serviço de alto nível para operações com JWT.
- * Abstrai a complexidade do JwtProvider.
+ * High-level service for JWT operations.
+ * Abstracts the complexity of JwtProvider.
  * 
- * <h2>Uso</h2>
+ * <h2>Usage</h2>
  * <pre>{@code
  * @Autowired
  * private JwtService jwtService;
  * 
  * public TokenPair login(String username, String password) {
- *     // Valida credenciais...
+ *     // Validate credentials...
  *     LazyUser user = LazyUser.builder()
  *         .id("123")
  *         .username(username)
@@ -43,7 +43,7 @@ public class JwtService {
     }
 
     /**
-     * Cria par de tokens (access + refresh) para o usuário.
+     * Creates a token pair (access + refresh) for the user.
      */
     public TokenPair createTokens(LazyUser user) {
         String accessToken = jwtProvider.generateToken(user);
@@ -52,7 +52,7 @@ public class JwtService {
     }
 
     /**
-     * Cria par de tokens com claims adicionais.
+     * Creates a token pair with additional claims.
      */
     public TokenPair createTokens(LazyUser user, Map<String, Object> extraClaims) {
         String accessToken = jwtProvider.generateToken(user, extraClaims);
@@ -61,35 +61,35 @@ public class JwtService {
     }
 
     /**
-     * Cria apenas access token.
+     * Creates only access token.
      */
     public String createAccessToken(LazyUser user) {
         return jwtProvider.generateToken(user);
     }
 
     /**
-     * Cria apenas refresh token.
+     * Creates only refresh token.
      */
     public String createRefreshToken(LazyUser user) {
         return jwtProvider.generateRefreshToken(user);
     }
 
     /**
-     * Valida token e retorna usuário.
+     * Validates token and returns user.
      */
     public LazyUser validate(String token) {
         return jwtProvider.validateToken(token);
     }
 
     /**
-     * Verifica se token é válido.
+     * Checks if token is valid.
      */
     public boolean isValid(String token) {
         return jwtProvider.isTokenValid(token);
     }
 
     /**
-     * Renova tokens usando refresh token.
+     * Renews tokens using refresh token.
      */
     public TokenPair refresh(String refreshToken) {
         LazyUser user = jwtProvider.validateToken(refreshToken);
@@ -97,8 +97,8 @@ public class JwtService {
     }
 
     /**
-     * Extrai usuário do token sem validar expiração.
-     * Útil para refresh de tokens expirados.
+     * Extracts user from token without validating expiration.
+     * Useful for refreshing expired tokens.
      */
     public String extractUserId(String token) {
         return jwtProvider.extractSubject(token);

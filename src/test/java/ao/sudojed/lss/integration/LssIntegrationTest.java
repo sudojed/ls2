@@ -25,8 +25,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 /**
- * Teste de integração completo do LazySpringSecurity.
- * Simula uma aplicação real com autenticação JWT e controle de acesso.
+ * Complete integration test for LazySpringSecurity.
+ * Simulates a real application with JWT authentication and access control.
  */
 @SpringBootTest(classes = LssIntegrationTest.TestApplication.class, webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureMockMvc
@@ -47,7 +47,7 @@ class LssIntegrationTest {
 
     @BeforeAll
     static void setupTokens(@Autowired JwtService jwtService) {
-        // Cria token de usuário comum
+        // Create regular user token
         LazyUser user = LazyUser.builder()
                 .id("user-123")
                 .username("john.doe")
@@ -57,7 +57,7 @@ class LssIntegrationTest {
                 .build();
         userToken = jwtService.createTokens(user).accessToken();
 
-        // Cria token de admin
+        // Create admin token
         LazyUser admin = LazyUser.builder()
                 .id("admin-456")
                 .username("admin")
@@ -67,11 +67,11 @@ class LssIntegrationTest {
         adminToken = jwtService.createTokens(admin).accessToken();
     }
 
-    // ==================== Testes de Endpoints Públicos ====================
+    // ==================== Public Endpoint Tests ====================
 
     @Test
     @Order(1)
-    @DisplayName("Endpoint @Public deve ser acessivel sem token")
+    @DisplayName("@Public endpoint should be accessible without token")
     void publicEndpointShouldBeAccessibleWithoutToken() throws Exception {
         mockMvc.perform(get("/api/public/health"))
                 .andExpect(status().isOk())
@@ -80,7 +80,7 @@ class LssIntegrationTest {
 
     @Test
     @Order(2)
-    @DisplayName("Login deve retornar tokens JWT")
+    @DisplayName("Login should return JWT tokens")
     void loginShouldReturnTokens() throws Exception {
         String loginRequest = """
             {
@@ -101,11 +101,11 @@ class LssIntegrationTest {
         System.out.println("Login Response: " + result.getResponse().getContentAsString());
     }
 
-    // ==================== Testes de Autenticação ====================
+    // ==================== Authentication Tests ====================
 
     @Test
     @Order(3)
-    @DisplayName("Endpoint protegido deve retornar 401 sem token")
+    @DisplayName("Protected endpoint should return 401 without token")
     void protectedEndpointShouldReturn401WithoutToken() throws Exception {
         mockMvc.perform(get("/api/profile"))
                 .andExpect(status().isUnauthorized())
@@ -114,7 +114,7 @@ class LssIntegrationTest {
 
     @Test
     @Order(4)
-    @DisplayName("Endpoint protegido deve retornar 401 com token invalido")
+    @DisplayName("Protected endpoint should return 401 with invalid token")
     void protectedEndpointShouldReturn401WithInvalidToken() throws Exception {
         mockMvc.perform(get("/api/profile")
                         .header("Authorization", "Bearer invalid.token.here"))
@@ -123,7 +123,7 @@ class LssIntegrationTest {
 
     @Test
     @Order(5)
-    @DisplayName("Endpoint @LazySecured deve aceitar token valido")
+    @DisplayName("@LazySecured endpoint should accept valid token")
     void protectedEndpointShouldAcceptValidToken() throws Exception {
         mockMvc.perform(get("/api/profile")
                         .header("Authorization", "Bearer " + userToken))
@@ -132,11 +132,11 @@ class LssIntegrationTest {
                 .andExpect(jsonPath("$.username").value("john.doe"));
     }
 
-    // ==================== Testes de Autorização por Role ====================
+    // ==================== Role-Based Authorization Tests ====================
 
     @Test
     @Order(6)
-    @DisplayName("Usuario comum NAO pode acessar endpoint @Admin")
+    @DisplayName("Regular user CANNOT access @Admin endpoint")
     void regularUserCannotAccessAdminEndpoint() throws Exception {
         mockMvc.perform(get("/api/admin/users")
                         .header("Authorization", "Bearer " + userToken))
@@ -146,7 +146,7 @@ class LssIntegrationTest {
 
     @Test
     @Order(7)
-    @DisplayName("Admin PODE acessar endpoint @Admin")
+    @DisplayName("Admin CAN access @Admin endpoint")
     void adminCanAccessAdminEndpoint() throws Exception {
         mockMvc.perform(get("/api/admin/users")
                         .header("Authorization", "Bearer " + adminToken))
@@ -156,7 +156,7 @@ class LssIntegrationTest {
 
     @Test
     @Order(8)
-    @DisplayName("Endpoint com multiplas roles aceita qualquer uma")
+    @DisplayName("Endpoint with multiple roles accepts any of them")
     void multipleRolesAcceptsAny() throws Exception {
         // User tem role USER
         mockMvc.perform(get("/api/dashboard")
@@ -169,11 +169,11 @@ class LssIntegrationTest {
                 .andExpect(status().isOk());
     }
 
-    // ==================== Testes de @Owner ====================
+    // ==================== @Owner Tests ====================
 
     @Test
     @Order(9)
-    @DisplayName("Usuario pode acessar seus proprios dados com @Owner")
+    @DisplayName("User can access their own data with @Owner")
     void userCanAccessOwnData() throws Exception {
         mockMvc.perform(get("/api/users/user-123/orders")
                         .header("Authorization", "Bearer " + userToken))
@@ -182,7 +182,7 @@ class LssIntegrationTest {
 
     @Test
     @Order(10)
-    @DisplayName("Usuario NAO pode acessar dados de outro com @Owner")
+    @DisplayName("User CANNOT access another user's data with @Owner")
     void userCannotAccessOthersData() throws Exception {
         mockMvc.perform(get("/api/users/other-user-999/orders")
                         .header("Authorization", "Bearer " + userToken))
@@ -191,18 +191,18 @@ class LssIntegrationTest {
 
     @Test
     @Order(11)
-    @DisplayName("Admin pode bypassar @Owner")
+    @DisplayName("Admin can bypass @Owner")
     void adminCanBypassOwner() throws Exception {
         mockMvc.perform(get("/api/users/other-user-999/orders")
                         .header("Authorization", "Bearer " + adminToken))
                 .andExpect(status().isOk());
     }
 
-    // ==================== Testes de LazyUser Injection ====================
+    // ==================== LazyUser Injection Tests ====================
 
     @Test
     @Order(12)
-    @DisplayName("LazyUser e injetado automaticamente no controller")
+    @DisplayName("LazyUser is automatically injected into controller")
     void lazyUserIsInjectedAutomatically() throws Exception {
         mockMvc.perform(get("/api/me")
                         .header("Authorization", "Bearer " + userToken))
@@ -212,11 +212,11 @@ class LssIntegrationTest {
                 .andExpect(jsonPath("$.isAdmin").value(false));
     }
 
-    // ==================== Teste de PasswordUtils ====================
+    // ==================== PasswordUtils Test ====================
 
     @Test
     @Order(13)
-    @DisplayName("PasswordUtils deve fazer hash e validar senhas")
+    @DisplayName("PasswordUtils should hash and validate passwords")
     void passwordUtilsShouldHashAndValidate() {
         String rawPassword = "mySecretPassword123";
         
@@ -233,7 +233,7 @@ class LssIntegrationTest {
         System.out.println("Password Hash: " + hash);
     }
 
-    // ==================== Aplicação de Teste ====================
+    // ==================== Test Application ====================
 
     @EnableLazySecurity(
             jwt = @JwtConfig(secret = "my-super-secret-key-for-testing-that-is-at-least-32-chars"),

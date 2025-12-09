@@ -7,9 +7,9 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Marca um endpoint ou método como PÚBLICO (sem autenticação).
+ * Marks an endpoint or method as PUBLIC (no authentication required).
  * 
- * <h2>Uso em Métodos</h2>
+ * <h2>Usage on Methods</h2>
  * <pre>{@code
  * @Public
  * @PostMapping("/login")
@@ -24,13 +24,13 @@ import java.lang.annotation.Target;
  * }
  * }</pre>
  * 
- * <h2>Uso em Classes</h2>
+ * <h2>Usage on Classes</h2>
  * <pre>{@code
  * @Public
  * @RestController
  * @RequestMapping("/api/public")
  * public class PublicController {
- *     // Todos os endpoints são públicos
+ *     // All endpoints are public
  * }
  * }</pre>
  *
@@ -42,7 +42,7 @@ import java.lang.annotation.Target;
 public @interface Public {
     
     /**
-     * Descrição opcional para documentação.
+     * Optional description for documentation.
      */
     String description() default "";
 }

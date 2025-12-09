@@ -16,7 +16,7 @@ import ao.sudojed.lss.core.LazyUser;
 import ao.sudojed.lss.exception.LazySecurityException;
 
 /**
- * Testes para DefaultJwtProvider.
+ * Tests for DefaultJwtProvider.
  */
 class DefaultJwtProviderTest {
 
@@ -35,7 +35,7 @@ class DefaultJwtProviderTest {
     }
 
     @Test
-    @DisplayName("Deve gerar token válido para usuário")
+    @DisplayName("Should generate valid token for user")
     void shouldGenerateValidToken() {
         // Given
         LazyUser user = LazyUser.builder()
@@ -55,7 +55,7 @@ class DefaultJwtProviderTest {
     }
 
     @Test
-    @DisplayName("Deve extrair usuário do token")
+    @DisplayName("Should extract user from token")
     void shouldExtractUserFromToken() {
         // Given
         LazyUser user = LazyUser.builder()
@@ -80,7 +80,7 @@ class DefaultJwtProviderTest {
     }
 
     @Test
-    @DisplayName("Deve gerar refresh token")
+    @DisplayName("Should generate refresh token")
     void shouldGenerateRefreshToken() {
         // Given
         LazyUser user = LazyUser.builder()
@@ -97,7 +97,7 @@ class DefaultJwtProviderTest {
     }
 
     @Test
-    @DisplayName("Deve rejeitar token inválido")
+    @DisplayName("Should reject invalid token")
     void shouldRejectInvalidToken() {
         // Given
         String invalidToken = "invalid.token.here";
@@ -108,7 +108,7 @@ class DefaultJwtProviderTest {
     }
 
     @Test
-    @DisplayName("Deve extrair subject do token")
+    @DisplayName("Should extract subject from token")
     void shouldExtractSubject() {
         // Given
         LazyUser user = LazyUser.builder()
@@ -126,7 +126,7 @@ class DefaultJwtProviderTest {
     }
 
     @Test
-    @DisplayName("Deve incluir claims extras no token")
+    @DisplayName("Should include extra claims in token")
     void shouldIncludeExtraClaims() {
         // Given
         LazyUser user = LazyUser.builder()
@@ -149,7 +149,7 @@ class DefaultJwtProviderTest {
     }
 
     @Test
-    @DisplayName("Não deve aceitar refresh token como access token")
+    @DisplayName("Should not accept refresh token as access token")
     void shouldNotAcceptRefreshTokenAsAccessToken() {
         // Given
         LazyUser user = LazyUser.builder()
@@ -164,7 +164,7 @@ class DefaultJwtProviderTest {
     }
 
     @Test
-    @DisplayName("Deve falhar com secret vazio")
+    @DisplayName("Should fail with empty secret")
     void shouldFailWithEmptySecret() {
         // Given
         LazySecurityProperties emptySecretProps = new LazySecurityProperties();

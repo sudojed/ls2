@@ -11,17 +11,17 @@ import java.util.Objects;
 import java.util.Set;
 
 /**
- * Representa o usuário autenticado no contexto do LazySpringSecurity.
- * Wrapper simplificado sobre o Spring Security Principal.
+ * Represents the authenticated user in the LazySpringSecurity context.
+ * Simplified wrapper over Spring Security Principal.
  * 
- * <h2>Acesso ao Usuário Atual</h2>
+ * <h2>Accessing Current User</h2>
  * <pre>{@code
  * @GetMapping("/profile")
- * public User profile(LazyUser user) {  // Injetado automaticamente
+ * public User profile(LazyUser user) {  // Automatically injected
  *     return userService.findById(user.getId());
  * }
  * 
- * // Ou via contexto estático
+ * // Or via static context
  * LazyUser user = LazySecurityContext.getCurrentUser();
  * }</pre>
  *
@@ -76,14 +76,14 @@ public class LazyUser implements Serializable {
     // ==================== Role/Permission Checks ====================
 
     /**
-     * Verifica se tem uma role específica.
+     * Checks if has a specific role.
      */
     public boolean hasRole(String role) {
         return roles.contains(normalizeRole(role));
     }
 
     /**
-     * Verifica se tem QUALQUER uma das roles.
+     * Checks if has ANY of the roles.
      */
     public boolean hasAnyRole(String... roles) {
         return Arrays.stream(roles)
@@ -92,7 +92,7 @@ public class LazyUser implements Serializable {
     }
 
     /**
-     * Verifica se tem TODAS as roles.
+     * Checks if has ALL the roles.
      */
     
     public boolean hasAllRoles(String... roles) {
@@ -102,14 +102,14 @@ public class LazyUser implements Serializable {
     }
 
     /**
-     * Verifica se tem uma permissão específica.
+     * Checks if has a specific permission.
      */
     public boolean hasPermission(String permission) {
         return permissions.contains(permission);
     }
 
     /**
-     * Verifica se é admin.
+     * Checks if is admin.
      */
     public boolean isAdmin() {
         return hasRole("ADMIN");
@@ -118,7 +118,7 @@ public class LazyUser implements Serializable {
     // ==================== Claims ====================
 
     /**
-     * Obtém um claim específico do token.
+     * Gets a specific claim from the token.
      */
     @SuppressWarnings("unchecked")
     public <T> T getClaim(String key) {
@@ -126,7 +126,7 @@ public class LazyUser implements Serializable {
     }
 
     /**
-     * Obtém um claim com valor padrão.
+     * Gets a claim with default value.
      */
     @SuppressWarnings("unchecked")
     public <T> T getClaim(String key, T defaultValue) {
@@ -134,7 +134,7 @@ public class LazyUser implements Serializable {
     }
 
     /**
-     * Verifica se um claim existe.
+     * Checks if a claim exists.
      */
     public boolean hasClaim(String key) {
         return claims.containsKey(key);
@@ -149,7 +149,7 @@ public class LazyUser implements Serializable {
     }
 
     /**
-     * Cria um usuário anônimo.
+     * Creates an anonymous user.
      */
     public static LazyUser anonymous() {
         return LazyUser.builder()
@@ -160,7 +160,7 @@ public class LazyUser implements Serializable {
     }
 
     /**
-     * Cria um builder para LazyUser.
+     * Creates a builder for LazyUser.
      */
     public static Builder builder() {
         return new Builder();

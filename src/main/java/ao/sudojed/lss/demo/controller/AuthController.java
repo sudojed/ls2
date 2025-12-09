@@ -16,17 +16,12 @@ import org.springframework.web.bind.annotation.*;
 import java.util.Map;
 
 /**
- * Controller de autenticacao - todos os endpoints sao publicos.
+ * Authentication controller - all endpoints are public.
  * 
- * Demonstra o uso de @Public para endpoints que nao requerem autenticacao
- * e o uso da facade Auth para operacoes de autenticacao.
+ * Demonstrates the use of @Public for endpoints that don't require authentication
+ * and the use of Auth facade for authentication operations.
  * 
- * Comparacao com Laravel:
- * - Auth.check()         -> Auth::check()
- * - Auth.user()          -> Auth::user()
- * - Auth.attempt(u, p)   -> Auth::attempt(['username' => u, 'password' => p])
- * - Auth.hashPassword(p) -> Hash::make(p)
- * - Auth.checkPassword() -> Hash::check()
+ * @author Sudojed Team
  */
 @RestController
 @RequestMapping("/auth")
@@ -41,9 +36,9 @@ public class AuthController {
     }
 
     /**
-     * Health check - verifica se a API está funcionando.
+     * Health check - verifies if the API is working.
      * 
-     * Uso: GET /auth/health
+     * Usage: GET /auth/health
      */
     @Public
     @GetMapping("/health")
@@ -57,25 +52,25 @@ public class AuthController {
     }
 
     /**
-     * Registra um novo usuario.
+     * Registers a new user.
      * 
-     * Uso: POST /auth/register
+     * Usage: POST /auth/register
      * Body: { "username": "john", "email": "john@example.com", "password": "123456" }
      */
     @Public
     @PostMapping("/register")
     public ResponseEntity<Map<String, Object>> register(@RequestBody RegisterRequest request) {
-        // Verifica se usuario ja existe
+        // Checks if user already exists
         if (userService.findByUsername(request.username()).isPresent()) {
             return ResponseEntity
                 .status(HttpStatus.CONFLICT)
                 .body(Map.of(
                     "error", "USER_EXISTS",
-                    "message", "Usuario ja existe: " + request.username()
+                    "message", "User already exists: " + request.username()
                 ));
         }
 
-        // Cria o usuario (senha eh hasheada internamente com Auth.hashPassword)
+        // Creates the user (password is hashed internally with Auth.hashPassword)
         User user = userService.createUser(
             request.username(),
             request.email(),
@@ -85,19 +80,19 @@ public class AuthController {
         return ResponseEntity
             .status(HttpStatus.CREATED)
             .body(Map.of(
-                "message", "Usuario criado com sucesso!",
+                "message", "User created successfully!",
                 "userId", user.getId(),
                 "username", user.getUsername()
             ));
     }
 
     /**
-     * Login - autentica e retorna tokens JWT.
+     * Login - authenticates and returns JWT tokens.
      * 
-     * Uso: POST /auth/login
+     * Usage: POST /auth/login
      * Body: { "username": "john", "password": "123456" }
      * 
-     * Retorna:
+     * Returns:
      * {
      *   "access_token": "eyJ...",
      *   "refresh_token": "eyJ...",
@@ -108,20 +103,20 @@ public class AuthController {
     @Public
     @PostMapping("/login")
     public ResponseEntity<Map<String, Object>> login(@RequestBody LoginRequest request) {
-        // Busca usuario
+        // Searches for user
         User user = userService.findByUsername(request.username()).orElse(null);
 
-        // Valida credenciais usando Auth.checkPassword (como Hash::check no Laravel)
+        // Validates credentials using Auth.checkPassword
         if (user == null || !Auth.checkPassword(request.password(), user.getPasswordHash())) {
             return ResponseEntity
                 .status(HttpStatus.UNAUTHORIZED)
                 .body(Map.of(
                     "error", "INVALID_CREDENTIALS",
-                    "message", "Usuario ou senha invalidos"
+                    "message", "Invalid username or password"
                 ));
         }
 
-        // Cria LazyUser para gerar tokens
+        // Creates LazyUser to generate tokens
         LazyUser lazyUser = LazyUser.builder()
             .id(user.getId())
             .username(user.getUsername())
@@ -130,18 +125,18 @@ public class AuthController {
             .claim("displayName", user.getDisplayName())
             .build();
 
-        // Gera tokens
+        // Generates tokens
         TokenPair tokens = jwtService.createTokens(lazyUser);
 
-        System.out.println("Login bem-sucedido: " + user.getUsername());
+        System.out.println("Login successful: " + user.getUsername());
 
         return ResponseEntity.ok(tokens.toMap());
     }
 
     /**
-     * Refresh token - gera novo access token usando refresh token.
+     * Refresh token - generates new access token using refresh token.
      * 
-     * Uso: POST /auth/refresh
+     * Usage: POST /auth/refresh
      * Body: { "refresh_token": "eyJ..." }
      */
     @Public
@@ -154,7 +149,7 @@ public class AuthController {
                 .status(HttpStatus.BAD_REQUEST)
                 .body(Map.of(
                     "error", "MISSING_TOKEN",
-                    "message", "refresh_token eh obrigatorio"
+                    "message", "refresh_token is required"
                 ));
         }
 
@@ -166,7 +161,7 @@ public class AuthController {
                 .status(HttpStatus.UNAUTHORIZED)
                 .body(Map.of(
                     "error", "INVALID_REFRESH_TOKEN",
-                    "message", "Refresh token invalido ou expirado"
+                    "message", "Invalid or expired refresh token"
                 ));
         }
     }

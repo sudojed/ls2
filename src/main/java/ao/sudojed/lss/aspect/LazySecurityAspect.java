@@ -22,8 +22,8 @@ import ao.sudojed.lss.exception.AccessDeniedException;
 import ao.sudojed.lss.exception.UnauthorizedException;
 
 /**
- * Aspect que intercepta métodos anotados com @LazySecured, @Public, @Owner, etc.
- * Executa verificações de autorização automaticamente.
+ * Aspect that intercepts methods annotated with @LazySecured, @Public, @Owner, etc.
+ * Performs authorization checks automatically.
  *
  * @author Sudojed Team
  */
@@ -34,9 +34,9 @@ public class LazySecurityAspect {
     private static final Logger log = LoggerFactory.getLogger(LazySecurityAspect.class);
 
     /**
-     * Intercepta métodos anotados com @LazySecured, @Admin, ou @Authenticated.
-     * Como @Admin e @Authenticated são meta-anotados com @LazySecured,
-     * precisamos interceptar explicitamente.
+     * Intercepts methods annotated with @LazySecured, @Admin, or @Authenticated.
+     * Since @Admin and @Authenticated are meta-annotated with @LazySecured,
+     * we need to intercept explicitly.
      */
     @Before("@annotation(ao.sudojed.lss.annotation.LazySecured) || " +
             "@within(ao.sudojed.lss.annotation.LazySecured) || " +
@@ -53,12 +53,12 @@ public class LazySecurityAspect {
 
         LazyUser user = LazySecurityContext.getCurrentUser();
 
-        // Verifica autenticação
+        // Verify authentication
         if (!user.isAuthenticated()) {
             throw new UnauthorizedException("Authentication required");
         }
 
-        // Verifica roles
+        // Verify roles
         String[] roles = annotation.roles();
         if (roles.length > 0) {
             boolean hasRole = switch (annotation.logic()) {
@@ -73,7 +73,7 @@ public class LazySecurityAspect {
             }
         }
 
-        // Verifica permissões
+        // Verify permissions
         String[] permissions = annotation.permissions();
         if (permissions.length > 0) {
             boolean hasPermission = Arrays.stream(permissions)
@@ -92,7 +92,7 @@ public class LazySecurityAspect {
     }
 
     /**
-     * Intercepta métodos anotados com @Owner.
+     * Intercepts methods annotated with @Owner.
      */
     @Before("@annotation(ao.sudojed.lss.annotation.Owner)")
     public void checkOwnership(JoinPoint joinPoint) {
@@ -104,7 +104,7 @@ public class LazySecurityAspect {
 
         LazyUser user = LazySecurityContext.getCurrentUser();
 
-        // Verifica autenticação
+        // Verify authentication
         if (!user.isAuthenticated()) {
             throw new UnauthorizedException("Authentication required");
         }
@@ -115,7 +115,7 @@ public class LazySecurityAspect {
             return;
         }
 
-        // Bypass por roles específicas
+        // Bypass by specific roles
         for (String role : annotation.bypassRoles()) {
             if (user.hasRole(role)) {
                 log.debug("Role bypass for ownership check - user: {}, role: {}", 
@@ -124,7 +124,7 @@ public class LazySecurityAspect {
             }
         }
 
-        // Extrai o valor do campo de ownership dos argumentos
+        // Extract the ownership field value from the arguments
         Object resourceOwnerId = extractFieldValue(joinPoint, annotation.field());
         String currentUserId = user.getId();
 
@@ -142,55 +142,55 @@ public class LazySecurityAspect {
     }
 
     /**
-     * Métodos @Public não precisam de verificação (bypass).
+     * @Public methods don't need verification (bypass).
      */
     @Before("@annotation(ao.sudojed.lss.annotation.Public) || @within(ao.sudojed.lss.annotation.Public)")
     public void handlePublic(JoinPoint joinPoint) {
-        // Não faz nada - apenas garante que o método não seja bloqueado
+        // Does nothing - just ensures the method is not blocked
         log.debug("Public access granted to {}.{}",
                 joinPoint.getTarget().getClass().getSimpleName(),
                 joinPoint.getSignature().getName());
     }
 
     /**
-     * Extrai anotação do método ou da classe.
+     * Extracts annotation from method or class.
      */
     @SuppressWarnings("unchecked")
     private <T extends Annotation> T getAnnotation(JoinPoint joinPoint, Class<T> annotationType) {
         MethodSignature signature = (MethodSignature) joinPoint.getSignature();
         Method method = signature.getMethod();
 
-        // Primeiro tenta no método
+        // First try on the method
         T annotation = AnnotationUtils.findAnnotation(method, annotationType);
         if (annotation != null) {
             return annotation;
         }
 
-        // Depois tenta na classe
+        // Then try on the class
         return AnnotationUtils.findAnnotation(joinPoint.getTarget().getClass(), annotationType);
     }
 
     /**
-     * Extrai valor de um campo dos argumentos do método.
+     * Extracts field value from method arguments.
      */
     private Object extractFieldValue(JoinPoint joinPoint, String fieldName) {
         MethodSignature signature = (MethodSignature) joinPoint.getSignature();
         String[] parameterNames = signature.getParameterNames();
         Object[] args = joinPoint.getArgs();
 
-        // Procura por nome do parâmetro
+        // Search by parameter name
         for (int i = 0; i < parameterNames.length; i++) {
             if (parameterNames[i].equals(fieldName)) {
                 return args[i];
             }
         }
 
-        // Procura em anotações @PathVariable, @RequestParam, etc.
+        // Search in @PathVariable, @RequestParam annotations, etc.
         Method method = signature.getMethod();
         Parameter[] parameters = method.getParameters();
         
         for (int i = 0; i < parameters.length; i++) {
-            // Verifica se o nome do parâmetro da anotação corresponde
+            // Check if the annotation parameter name matches
             if (hasMatchingAnnotation(parameters[i], fieldName)) {
                 return args[i];
             }
@@ -200,7 +200,7 @@ public class LazySecurityAspect {
     }
 
     private boolean hasMatchingAnnotation(Parameter parameter, String fieldName) {
-        // Verifica @PathVariable
+        // Check @PathVariable
         try {
             Class<?> pathVariableClass = Class.forName("org.springframework.web.bind.annotation.PathVariable");
             Annotation pathVariable = parameter.getAnnotation((Class<? extends Annotation>) pathVariableClass);
@@ -214,7 +214,7 @@ public class LazySecurityAspect {
         } catch (Exception ignored) {
         }
 
-        // Verifica @RequestParam
+        // Check @RequestParam
         try {
             Class<?> requestParamClass = Class.forName("org.springframework.web.bind.annotation.RequestParam");
             Annotation requestParam = parameter.getAnnotation((Class<? extends Annotation>) requestParamClass);

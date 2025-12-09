@@ -3,7 +3,7 @@ package ao.sudojed.lss.exception;
 import org.springframework.http.HttpStatus;
 
 /**
- * Exceção lançada quando rate limit é excedido (429 Too Many Requests).
+ * Exception thrown when rate limit is exceeded (429 Too Many Requests).
  *
  * @author Sudojed Team
  */

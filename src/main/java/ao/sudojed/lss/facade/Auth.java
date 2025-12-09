@@ -9,39 +9,30 @@ import java.util.Optional;
 import java.util.function.Function;
 
 /**
- * Facade de autenticacao estilo Laravel.
+ * Static authentication facade for LazySpringSecurity.
  * 
- * Permite acesso estatico a operacoes de autenticacao em qualquer
- * parte do codigo, sem necessidade de injecao de dependencias.
+ * Provides static access to authentication operations from anywhere
+ * in the codebase, without requiring dependency injection.
  * 
- * <h2>Uso Basico</h2>
+ * <h2>Basic Usage</h2>
  * <pre>{@code
- * // Verificar se esta autenticado
+ * // Check if authenticated
  * if (Auth.check()) { ... }
  * 
- * // Obter usuario atual
+ * // Get current user
  * LazyUser user = Auth.user();
  * 
- * // Verificar roles
+ * // Check roles
  * if (Auth.hasRole("ADMIN")) { ... }
  * 
- * // Obter ID do usuario
+ * // Get user ID
  * String id = Auth.id();
  * 
- * // Executar acao apenas se autenticado
+ * // Execute action only if authenticated
  * Auth.ifAuthenticated(user -> {
- *     System.out.println("Ola, " + user.getUsername());
+ *     System.out.println("Hello, " + user.getUsername());
  * });
  * }</pre>
- * 
- * <h2>Comparacao com Laravel</h2>
- * <table>
- *   <tr><th>Laravel</th><th>LSS</th></tr>
- *   <tr><td>Auth::check()</td><td>Auth.check()</td></tr>
- *   <tr><td>Auth::user()</td><td>Auth.user()</td></tr>
- *   <tr><td>Auth::id()</td><td>Auth.id()</td></tr>
- *   <tr><td>Auth::guest()</td><td>Auth.guest()</td></tr>
- * </table>
  * 
  * @author Sudojed Team
  * @see LazySecurityContext
@@ -49,201 +40,197 @@ import java.util.function.Function;
  */
 public final class Auth {
 
-    // Provider de autenticacao (para operacoes de login)
+    // Authentication provider (for login operations)
     private static AuthProvider provider;
 
     private Auth() {
-        // Classe utilitaria - nao instanciar
+        // Utility class - do not instantiate
     }
 
     // ========================================================================
-    // VERIFICACAO DE AUTENTICACAO
+    // AUTHENTICATION CHECKS
     // ========================================================================
 
     /**
-     * Verifica se ha um usuario autenticado.
-     * Equivalente ao Auth::check() do Laravel.
+     * Checks if there is an authenticated user.
      * 
-     * @return true se autenticado
+     * @return true if authenticated
      */
     public static boolean check() {
         return LazySecurityContext.isAuthenticated();
     }
 
     /**
-     * Verifica se o usuario eh um visitante (nao autenticado).
-     * Equivalente ao Auth::guest() do Laravel.
+     * Checks if the user is a guest (not authenticated).
      * 
-     * @return true se NAO autenticado
+     * @return true if NOT authenticated
      */
     public static boolean guest() {
         return !check();
     }
 
     // ========================================================================
-    // ACESSO AO USUARIO
+    // USER ACCESS
     // ========================================================================
 
     /**
-     * Obtem o usuario autenticado atual.
-     * Equivalente ao Auth::user() do Laravel.
+     * Gets the current authenticated user.
      * 
-     * @return LazyUser atual ou usuario anonimo se nao autenticado
+     * @return current LazyUser or anonymous user if not authenticated
      */
     public static LazyUser user() {
         return LazySecurityContext.getCurrentUser();
     }
 
     /**
-     * Obtem o usuario como Optional (vazio se nao autenticado).
+     * Gets the user as Optional (empty if not authenticated).
      * 
-     * @return Optional com usuario ou empty
+     * @return Optional with user or empty
      */
     public static Optional<LazyUser> userOptional() {
         return LazySecurityContext.getUser();
     }
 
     /**
-     * Obtem o ID do usuario autenticado.
-     * Equivalente ao Auth::id() do Laravel.
+     * Gets the authenticated user's ID.
      * 
-     * @return ID do usuario ou null se nao autenticado
+     * @return user ID or null if not authenticated
      */
     public static String id() {
         return check() ? user().getId() : null;
     }
 
     /**
-     * Obtem o username do usuario autenticado.
+     * Gets the authenticated user's username.
      * 
-     * @return username ou null se nao autenticado
+     * @return username or null if not authenticated
      */
     public static String username() {
         return check() ? user().getUsername() : null;
     }
 
     // ========================================================================
-    // VERIFICACAO DE ROLES E PERMISSOES
+    // ROLE AND PERMISSION CHECKS
     // ========================================================================
 
     /**
-     * Verifica se o usuario tem uma role especifica.
+     * Checks if the user has a specific role.
      * 
-     * @param role nome da role (ex: "ADMIN", "MANAGER")
-     * @return true se possui a role
+     * @param role role name (e.g., "ADMIN", "MANAGER")
+     * @return true if has the role
      */
     public static boolean hasRole(String role) {
         return LazySecurityContext.hasRole(role);
     }
 
     /**
-     * Verifica se o usuario tem qualquer uma das roles.
+     * Checks if the user has any of the specified roles.
      * 
-     * @param roles array de roles
-     * @return true se possui pelo menos uma
+     * @param roles array of roles
+     * @return true if has at least one
      */
     public static boolean hasAnyRole(String... roles) {
         return LazySecurityContext.hasAnyRole(roles);
     }
 
     /**
-     * Verifica se o usuario tem todas as roles especificadas.
+     * Checks if the user has all the specified roles.
      * 
-     * @param roles array de roles
-     * @return true se possui todas
+     * @param roles array of roles
+     * @return true if has all
      */
     public static boolean hasAllRoles(String... roles) {
         return LazySecurityContext.hasAllRoles(roles);
     }
 
     /**
-     * Verifica se o usuario tem uma permissao especifica.
+     * Checks if the user has a specific permission.
      * 
-     * @param permission nome da permissao
-     * @return true se possui a permissao
+     * @param permission permission name
+     * @return true if has the permission
      */
     public static boolean can(String permission) {
         return LazySecurityContext.hasPermission(permission);
     }
 
     /**
-     * Verifica se o usuario NAO tem uma permissao.
+     * Checks if the user does NOT have a permission.
      * 
-     * @param permission nome da permissao
-     * @return true se NAO possui a permissao
+     * @param permission permission name
+     * @return true if does NOT have the permission
      */
     public static boolean cannot(String permission) {
         return !can(permission);
     }
 
     /**
-     * Verifica se o usuario eh admin.
+     * Checks if the user is an admin.
      * 
-     * @return true se possui role ADMIN
+     * @return true if has ADMIN role
      */
     public static boolean isAdmin() {
         return LazySecurityContext.isAdmin();
     }
 
     // ========================================================================
-    // AUTENTICACAO (LOGIN/LOGOUT)
+    // AUTHENTICATION (LOGIN/LOGOUT)
     // ========================================================================
 
     /**
-     * Tenta autenticar com credenciais.
+     * Attempts to authenticate with credentials.
      * 
-     * @param username nome de usuario
-     * @param password senha em texto plano
-     * @return true se autenticado com sucesso
+     * @param username username
+     * @param password plain text password
+     * @return true if successfully authenticated
      */
     public static boolean attempt(String username, String password) {
         if (provider == null) {
             throw new IllegalStateException(
-                "AuthProvider nao configurado. Configure via Auth.setProvider()");
+                "AuthProvider not configured. Configure via Auth.setProvider()");
         }
         return provider.attempt(username, password);
     }
 
     /**
-     * Valida credenciais sem fazer login.
+     * Validates credentials without logging in.
      * 
-     * @param username nome de usuario
-     * @param password senha em texto plano
-     * @return true se credenciais validas
+     * @param username username
+     * @param password plain text password
+     * @return true if credentials are valid
      */
     public static boolean validate(String username, String password) {
         if (provider == null) {
             throw new IllegalStateException(
-                "AuthProvider nao configurado. Configure via Auth.setProvider()");
+                "AuthProvider not configured. Configure via Auth.setProvider()");
         }
         return provider.validate(username, password);
     }
 
     /**
-     * Autentica um usuario diretamente (sem verificar senha).
-     * Util apos registro ou recuperacao de senha.
+     * Authenticates a user directly (without verifying password).
+     * Useful after registration or password recovery.
      * 
-     * @param user usuario a autenticar
+     * @param user user to authenticate
      */
     public static void login(LazyUser user) {
         LazySecurityContext.setCurrentUser(user);
     }
 
     /**
-     * Desloga o usuario atual.
+     * Logs out the current user.
      */
     public static void logout() {
         LazySecurityContext.clear();
     }
 
     // ========================================================================
-    // UTILITARIOS
+    // UTILITIES
     // ========================================================================
 
     /**
-     * Executa acao apenas se autenticado.
+     * Executes action only if authenticated.
      * 
-     * @param action acao a executar com o usuario
+     * @param action action to execute with the user
      */
     public static void ifAuthenticated(java.util.function.Consumer<LazyUser> action) {
         if (check()) {
@@ -252,9 +239,9 @@ public final class Auth {
     }
 
     /**
-     * Executa acao apenas se guest.
+     * Executes action only if guest.
      * 
-     * @param action acao a executar
+     * @param action action to execute
      */
     public static void ifGuest(Runnable action) {
         if (guest()) {
@@ -263,103 +250,103 @@ public final class Auth {
     }
 
     /**
-     * Obtem valor se autenticado, ou default se nao.
+     * Gets value if authenticated, or default if not.
      * 
-     * @param mapper funcao para extrair valor do usuario
-     * @param defaultValue valor padrao
-     * @return valor extraido ou default
+     * @param mapper function to extract value from user
+     * @param defaultValue default value
+     * @return extracted value or default
      */
     public static <T> T getOrDefault(Function<LazyUser, T> mapper, T defaultValue) {
         return check() ? mapper.apply(user()) : defaultValue;
     }
 
     /**
-     * Obtem claim do usuario.
+     * Gets a claim from the user.
      * 
-     * @param key nome da claim
-     * @return valor da claim ou null
+     * @param key claim name
+     * @return claim value or null
      */
     public static Object claim(String key) {
         return user().getClaim(key);
     }
 
     /**
-     * Obtem claim do usuario com tipo.
+     * Gets a claim from the user with type.
      * 
-     * @param key nome da claim
-     * @param defaultValue valor padrao se claim nao existir
-     * @return valor da claim ou default
+     * @param key claim name
+     * @param defaultValue default value if claim doesn't exist
+     * @return claim value or default
      */
     public static <T> T claim(String key, T defaultValue) {
         return user().getClaim(key, defaultValue);
     }
 
     /**
-     * Exige autenticacao. Lanca excecao se nao autenticado.
+     * Requires authentication. Throws exception if not authenticated.
      * 
-     * @throws UnauthorizedException se nao autenticado
+     * @throws UnauthorizedException if not authenticated
      */
     public static void requireAuth() {
         if (!check()) {
-            throw new UnauthorizedException("Autenticacao requerida");
+            throw new UnauthorizedException("Authentication required");
         }
     }
 
     /**
-     * Exige uma role especifica.
+     * Requires a specific role.
      * 
-     * @param role role requerida
-     * @throws ao.sudojed.lss.exception.AccessDeniedException se nao possui a role
+     * @param role required role
+     * @throws ao.sudojed.lss.exception.AccessDeniedException if doesn't have the role
      */
     public static void requireRole(String role) {
         requireAuth();
         if (!hasRole(role)) {
             throw new ao.sudojed.lss.exception.AccessDeniedException(
-                "Role requerida: " + role);
+                "Required role: " + role);
         }
     }
 
     /**
-     * Executa como outro usuario (para testes).
+     * Executes as another user (for testing).
      * 
-     * @param user usuario a impersonar
-     * @param action acao a executar
-     * @return resultado da acao
+     * @param user user to impersonate
+     * @param action action to execute
+     * @return action result
      */
     public static <T> T runAs(LazyUser user, java.util.function.Supplier<T> action) {
         return LazySecurityContext.runAs(user, action);
     }
 
     // ========================================================================
-    // CONFIGURACAO
+    // CONFIGURATION
     // ========================================================================
 
     /**
-     * Configura o provider de autenticacao.
+     * Configures the authentication provider.
      * 
-     * @param authProvider implementacao do provider
+     * @param authProvider provider implementation
      */
     public static void setProvider(AuthProvider authProvider) {
         provider = authProvider;
     }
 
     /**
-     * Interface para provider de autenticacao customizado.
+     * Interface for custom authentication provider.
      */
     @FunctionalInterface
     public interface AuthProvider {
         /**
-         * Tenta autenticar com credenciais.
+         * Attempts to authenticate with credentials.
          * 
-         * @param username nome de usuario
-         * @param password senha
-         * @return true se sucesso
+         * @param username username
+         * @param password password
+         * @return true if successful
          */
         boolean attempt(String username, String password);
 
         /**
-         * Valida credenciais sem fazer login.
-         * Por padrao, apenas chama attempt.
+         * Validates credentials without logging in.
+         * By default, just calls attempt.
          */
         default boolean validate(String username, String password) {
             return attempt(username, password);
@@ -367,25 +354,25 @@ public final class Auth {
     }
 
     // ========================================================================
-    // HELPERS DE SENHA
+    // PASSWORD HELPERS
     // ========================================================================
 
     /**
-     * Faz hash de uma senha.
+     * Hashes a password.
      * 
-     * @param password senha em texto plano
-     * @return hash da senha
+     * @param password plain text password
+     * @return password hash
      */
     public static String hashPassword(String password) {
         return PasswordUtils.hash(password);
     }
 
     /**
-     * Verifica se senha corresponde ao hash.
+     * Verifies if password matches the hash.
      * 
-     * @param password senha em texto plano
-     * @param hash hash armazenado
-     * @return true se corresponde
+     * @param password plain text password
+     * @param hash stored hash
+     * @return true if matches
      */
     public static boolean checkPassword(String password, String hash) {
         return PasswordUtils.matches(password, hash);

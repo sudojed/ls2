@@ -6,23 +6,23 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 
 /**
- * Contexto de segurança simplificado do LazySpringSecurity.
- * Provê acesso fácil ao usuário atual sem boilerplate.
+ * Simplified security context for LazySpringSecurity.
+ * Provides easy access to current user without boilerplate.
  * 
- * <h2>Uso</h2>
+ * <h2>Usage</h2>
  * <pre>{@code
- * // Obtém usuário atual (nunca null)
+ * // Gets current user (never null)
  * LazyUser user = LazySecurityContext.getCurrentUser();
  * 
- * // Verifica se está autenticado
+ * // Checks if authenticated
  * if (LazySecurityContext.isAuthenticated()) {
  *     // ...
  * }
  * 
- * // Obtém ID do usuário diretamente
+ * // Gets user ID directly
  * String userId = LazySecurityContext.getUserId();
  * 
- * // Verifica role
+ * // Checks role
  * if (LazySecurityContext.hasRole("ADMIN")) {
  *     // ...
  * }
@@ -39,8 +39,8 @@ public final class LazySecurityContext {
     }
 
     /**
-     * Obtém o usuário atual autenticado.
-     * Retorna usuário anônimo se não autenticado.
+     * Gets the current authenticated user.
+     * Returns anonymous user if not authenticated.
      */
     public static LazyUser getCurrentUser() {
         LazyUser cachedUser = userHolder.get();
@@ -60,7 +60,7 @@ public final class LazySecurityContext {
             return (LazyUser) principal;
         }
 
-        // Fallback para outros tipos de principal
+        // Fallback for other principal types
         return LazyUser.builder()
                 .id(authentication.getName())
                 .username(authentication.getName())
@@ -72,8 +72,8 @@ public final class LazySecurityContext {
     }
 
     /**
-     * Obtém o usuário atual como Optional.
-     * Empty se não autenticado.
+     * Gets current user as Optional.
+     * Empty if not authenticated.
      */
     public static Optional<LazyUser> getUser() {
         LazyUser user = getCurrentUser();
@@ -81,77 +81,77 @@ public final class LazySecurityContext {
     }
 
     /**
-     * Verifica se há um usuário autenticado.
+     * Checks if there is an authenticated user.
      */
     public static boolean isAuthenticated() {
         return getCurrentUser().isAuthenticated();
     }
 
     /**
-     * Obtém o ID do usuário atual.
+     * Gets the current user's ID.
      */
     public static String getUserId() {
         return getCurrentUser().getId();
     }
 
     /**
-     * Obtém o username do usuário atual.
+     * Gets the current user's username.
      */
     public static String getUsername() {
         return getCurrentUser().getUsername();
     }
 
     /**
-     * Verifica se o usuário tem uma role específica.
+     * Checks if the user has a specific role.
      */
     public static boolean hasRole(String role) {
         return getCurrentUser().hasRole(role);
     }
 
     /**
-     * Verifica se o usuário tem qualquer uma das roles.
+     * Checks if the user has any of the roles.
      */
     public static boolean hasAnyRole(String... roles) {
         return getCurrentUser().hasAnyRole(roles);
     }
 
     /**
-     * Verifica se o usuário tem todas as roles.
+     * Checks if the user has all the roles.
      */
     public static boolean hasAllRoles(String... roles) {
         return getCurrentUser().hasAllRoles(roles);
     }
 
     /**
-     * Verifica se o usuário tem uma permissão específica.
+     * Checks if the user has a specific permission.
      */
     public static boolean hasPermission(String permission) {
         return getCurrentUser().hasPermission(permission);
     }
 
     /**
-     * Verifica se o usuário é admin.
+     * Checks if the user is admin.
      */
     public static boolean isAdmin() {
         return getCurrentUser().isAdmin();
     }
 
     /**
-     * Define o usuário no contexto (uso interno).
+     * Sets the user in context (internal use).
      */
     public static void setCurrentUser(LazyUser user) {
         userHolder.set(user);
     }
 
     /**
-     * Limpa o contexto do usuário (uso interno).
+     * Clears the user context (internal use).
      */
     public static void clear() {
         userHolder.remove();
     }
 
     /**
-     * Executa uma ação como um usuário específico (útil para testes).
+     * Executes an action as a specific user (useful for tests).
      */
     public static <T> T runAs(LazyUser user, java.util.function.Supplier<T> action) {
         LazyUser previous = userHolder.get();
@@ -168,7 +168,7 @@ public final class LazySecurityContext {
     }
 
     /**
-     * Executa uma ação como um usuário específico (sem retorno).
+     * Executes an action as a specific user (no return).
      */
     public static void runAs(LazyUser user, Runnable action) {
         runAs(user, () -> {

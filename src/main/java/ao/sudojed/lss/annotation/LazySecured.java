@@ -7,16 +7,16 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Protege um endpoint/método requerendo autenticação e roles específicas.
+ * Protects an endpoint/method requiring authentication and specific roles.
  * 
- * <h2>Autenticação Simples (qualquer usuário autenticado)</h2>
+ * <h2>Simple Authentication (any authenticated user)</h2>
  * <pre>{@code
  * @LazySecured
  * @GetMapping("/profile")
  * public User getProfile() { }
  * }</pre>
  * 
- * <h2>Roles Específicas</h2>
+ * <h2>Specific Roles</h2>
  * <pre>{@code
  * @LazySecured(roles = "ADMIN")
  * @DeleteMapping("/users/{id}")
@@ -27,16 +27,16 @@ import java.lang.annotation.Target;
  * public List<Report> getReports() { }
  * }</pre>
  * 
- * <h2>Lógica de Roles</h2>
+ * <h2>Role Logic</h2>
  * <pre>{@code
- * // Qualquer uma das roles (OR)
+ * // Any of the roles (OR)
  * @LazySecured(roles = {"ADMIN", "MANAGER"}, logic = RoleLogic.ANY)
  * 
- * // Todas as roles necessárias (AND)
+ * // All roles required (AND)
  * @LazySecured(roles = {"VERIFIED", "PREMIUM"}, logic = RoleLogic.ALL)
  * }</pre>
  * 
- * <h2>Combinado com Permissões</h2>
+ * <h2>Combined with Permissions</h2>
  * <pre>{@code
  * @LazySecured(
  *     roles = "USER",
@@ -52,40 +52,40 @@ import java.lang.annotation.Target;
 public @interface LazySecured {
 
     /**
-     * Roles permitidas para acessar o recurso.
-     * Se vazio, apenas autenticação é necessária.
+     * Roles allowed to access the resource.
+     * If empty, only authentication is required.
      */
     String[] roles() default {};
 
     /**
-     * Permissões específicas requeridas (fine-grained).
-     * Ex: "users:read", "posts:write"
+     * Specific permissions required (fine-grained).
+     * Example: "users:read", "posts:write"
      */
     String[] permissions() default {};
 
     /**
-     * Lógica para múltiplas roles.
+     * Logic for multiple roles.
      */
     RoleLogic logic() default RoleLogic.ANY;
 
     /**
-     * Mensagem customizada de erro quando acesso negado.
+     * Custom error message when access is denied.
      */
     String message() default "Access denied";
 
     /**
-     * SpEL expression para validação dinâmica.
-     * Ex: "#userId == authentication.principal.id"
+     * SpEL expression for dynamic validation.
+     * Example: "#userId == authentication.principal.id"
      */
     String condition() default "";
     
     /**
-     * Lógica de avaliação de roles.
+     * Role evaluation logic.
      */
     enum RoleLogic {
-        /** Qualquer uma das roles é suficiente (OR) */
+        /** Any of the roles is sufficient (OR) */
         ANY,
-        /** Todas as roles são necessárias (AND) */
+        /** All roles are required (AND) */
         ALL
     }
 }

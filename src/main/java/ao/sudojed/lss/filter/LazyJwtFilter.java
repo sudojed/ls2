@@ -51,7 +51,7 @@ public class LazyJwtFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
                                     FilterChain filterChain) throws ServletException, IOException {
         try {
-            // Verifica se é path público
+            // Check if it's a public path
             if (isPublicPath(request.getRequestURI())) {
                 if (properties.isDebug()) {
                     log.debug("Public path accessed: {}", request.getRequestURI());
@@ -60,7 +60,7 @@ public class LazyJwtFilter extends OncePerRequestFilter {
                 return;
             }
 
-            // Extrai token do header
+            // Extract token from header
             String token = extractToken(request);
 
             if (token != null) {
@@ -72,7 +72,7 @@ public class LazyJwtFilter extends OncePerRequestFilter {
         } catch (LazySecurityException e) {
             exceptionHandler.handleLazyException(request, response, e);
         } finally {
-            // Limpa contexto
+            // Clear context
             LazySecurityContext.clear();
         }
     }
@@ -85,11 +85,11 @@ public class LazyJwtFilter extends OncePerRequestFilter {
             if (header.startsWith(prefix)) {
                 return header.substring(prefix.length());
             }
-            // Aceita token sem prefixo também
+            // Accepts token without prefix as well
             return header;
         }
         
-        // Fallback: tenta extrair de query param (útil para WebSocket)
+        // Fallback: tries to extract from query param (useful for WebSocket)
         String tokenParam = request.getParameter("token");
         if (StringUtils.hasText(tokenParam)) {
             return tokenParam;
@@ -101,10 +101,10 @@ public class LazyJwtFilter extends OncePerRequestFilter {
     private void processToken(HttpServletRequest request, String token) {
         LazyUser user = jwtProvider.validateToken(token);
         
-        // Define no contexto do LSS
+        // Set in LSS context
         LazySecurityContext.setCurrentUser(user);
 
-        // Define no contexto do Spring Security
+        // Set in Spring Security context
         List<SimpleGrantedAuthority> authorities = Stream.concat(
                 user.getRoles().stream().map(role -> new SimpleGrantedAuthority("ROLE_" + role)),
                 user.getPermissions().stream().map(SimpleGrantedAuthority::new)
@@ -128,7 +128,7 @@ public class LazyJwtFilter extends OncePerRequestFilter {
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
-        // Não filtra OPTIONS (preflight CORS)
+        // Don't filter OPTIONS (preflight CORS)
         return "OPTIONS".equalsIgnoreCase(request.getMethod());
     }
 }

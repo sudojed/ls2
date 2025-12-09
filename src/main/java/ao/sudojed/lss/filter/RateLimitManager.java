@@ -15,8 +15,8 @@ import ao.sudojed.lss.exception.RateLimitExceededException;
 import jakarta.servlet.http.HttpServletRequest;
 
 /**
- * Gerenciador de rate limiting do LazySpringSecurity.
- * Implementação em memória (para produção, considere usar Redis).
+ * Rate limiting manager for LazySpringSecurity.
+ * In-memory implementation (for production, consider using Redis).
  *
  * @author Sudojed Team
  */
@@ -27,9 +27,9 @@ public class RateLimitManager {
     private final Map<String, RateLimitBucket> buckets = new ConcurrentHashMap<>();
 
     /**
-     * Verifica e aplica rate limit para um request.
+     * Checks and applies rate limit for a request.
      * 
-     * @throws RateLimitExceededException se limite excedido
+     * @throws RateLimitExceededException if limit is exceeded
      */
     public void checkRateLimit(HttpServletRequest request, HandlerMethod handler) {
         RateLimit rateLimit = findRateLimitAnnotation(handler);
@@ -49,13 +49,13 @@ public class RateLimitManager {
     }
 
     private RateLimit findRateLimitAnnotation(HandlerMethod handler) {
-        // Primeiro verifica no método
+        // First check on the method
         RateLimit methodAnnotation = handler.getMethodAnnotation(RateLimit.class);
         if (methodAnnotation != null) {
             return methodAnnotation;
         }
 
-        // Depois verifica na classe
+        // Then check on the class
         return handler.getBeanType().getAnnotation(RateLimit.class);
     }
 
@@ -85,7 +85,7 @@ public class RateLimitManager {
     }
 
     /**
-     * Limpa buckets expirados (chamar periodicamente).
+     * Cleans up expired buckets (call periodically).
      */
     public void cleanup() {
         long now = System.currentTimeMillis();
@@ -93,7 +93,7 @@ public class RateLimitManager {
     }
 
     /**
-     * Bucket para controle de rate limit usando algoritmo de janela fixa.
+     * Bucket for rate limit control using fixed window algorithm.
      */
     private static class RateLimitBucket {
         private final int maxRequests;
@@ -110,14 +110,14 @@ public class RateLimitManager {
             long now = System.currentTimeMillis();
             long currentWindowStart = windowStart.get();
 
-            // Nova janela
+            // New window
             if (now - currentWindowStart >= windowMillis) {
                 windowStart.set(now);
                 count.set(1);
                 return true;
             }
 
-            // Mesma janela
+            // Same window
             return count.incrementAndGet() <= maxRequests;
         }
 

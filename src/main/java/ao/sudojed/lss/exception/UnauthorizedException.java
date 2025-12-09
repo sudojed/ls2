@@ -3,7 +3,7 @@ package ao.sudojed.lss.exception;
 import org.springframework.http.HttpStatus;
 
 /**
- * Exceção lançada quando autenticação falha ou está ausente (401 Unauthorized).
+ * Exception thrown when authentication fails or is missing (401 Unauthorized).
  *
  * @author Sudojed Team
  */

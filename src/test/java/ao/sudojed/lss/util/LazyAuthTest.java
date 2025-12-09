@@ -14,7 +14,7 @@ import ao.sudojed.lss.core.LazySecurityContext;
 import ao.sudojed.lss.core.LazyUser;
 
 /**
- * Testes para LazyAuth.
+ * Tests for LazyAuth.
  */
 class LazyAuthTest {
 
@@ -29,7 +29,7 @@ class LazyAuthTest {
     }
 
     @Test
-    @DisplayName("Deve retornar usuário anônimo quando não autenticado")
+    @DisplayName("Should return anonymous user when not authenticated")
     void shouldReturnAnonymousWhenNotAuthenticated() {
         // When
         LazyUser user = LazyAuth.user();
@@ -41,13 +41,13 @@ class LazyAuthTest {
     }
 
     @Test
-    @DisplayName("Deve verificar autenticação corretamente")
+    @DisplayName("Should check authentication correctly")
     void shouldCheckAuthentication() {
-        // Given - sem usuário
+        // Given - without user
         assertFalse(LazyAuth.isAuthenticated());
         assertTrue(LazyAuth.isAnonymous());
 
-        // Given - com usuário
+        // Given - with user
         LazyUser user = LazyUser.builder()
                 .id("123")
                 .username("test")
@@ -61,7 +61,7 @@ class LazyAuthTest {
     }
 
     @Test
-    @DisplayName("Deve verificar roles")
+    @DisplayName("Should check roles")
     void shouldCheckRoles() {
         // Given
         LazyUser user = LazyUser.builder()
@@ -84,7 +84,7 @@ class LazyAuthTest {
     }
 
     @Test
-    @DisplayName("Deve verificar admin")
+    @DisplayName("Should check admin")
     void shouldCheckAdmin() {
         // Given - user normal
         LazyUser user = LazyUser.builder()
@@ -106,7 +106,7 @@ class LazyAuthTest {
     }
 
     @Test
-    @DisplayName("Deve verificar ownership")
+    @DisplayName("Should check ownership")
     void shouldCheckOwnership() {
         // Given
         LazyUser user = LazyUser.builder()
@@ -122,7 +122,7 @@ class LazyAuthTest {
     }
 
     @Test
-    @DisplayName("Deve verificar admin ou owner")
+    @DisplayName("Should check admin or owner")
     void shouldCheckAdminOrOwner() {
         // Given - user normal, é owner
         LazyUser user = LazyUser.builder()
@@ -148,7 +148,7 @@ class LazyAuthTest {
     }
 
     @Test
-    @DisplayName("Deve executar ação condicionalmente")
+    @DisplayName("Should execute conditionally")
     void shouldExecuteConditionally() {
         // Given
         LazyUser admin = LazyUser.builder()
@@ -169,7 +169,7 @@ class LazyAuthTest {
     }
 
     @Test
-    @DisplayName("Deve retornar valor condicional")
+    @DisplayName("Should return conditional value")
     void shouldReturnConditionalValue() {
         // Given - autenticado
         LazyUser user = LazyUser.builder()
@@ -192,7 +192,7 @@ class LazyAuthTest {
     }
 
     @Test
-    @DisplayName("Deve obter userId e username")
+    @DisplayName("Should get userId and username")
     void shouldGetUserIdAndUsername() {
         // Given
         LazyUser user = LazyUser.builder()

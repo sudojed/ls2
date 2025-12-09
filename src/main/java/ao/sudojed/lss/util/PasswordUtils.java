@@ -4,8 +4,8 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 /**
- * Utilitário para hash de senhas.
- * Usa BCrypt por padrão (recomendado pelo OWASP).
+ * Password hashing utility.
+ * Uses BCrypt by default (OWASP recommended).
  *
  * @author Sudojed Team
  */
@@ -18,21 +18,21 @@ public final class PasswordUtils {
     }
 
     /**
-     * Gera hash da senha usando BCrypt.
+     * Generates password hash using BCrypt.
      */
     public static String hash(String rawPassword) {
         return encoder.encode(rawPassword);
     }
 
     /**
-     * Verifica se senha corresponde ao hash.
+     * Verifies if password matches the hash.
      */
     public static boolean matches(String rawPassword, String encodedPassword) {
         return encoder.matches(rawPassword, encodedPassword);
     }
 
     /**
-     * Retorna o PasswordEncoder para uso com Spring Security.
+     * Returns the PasswordEncoder for use with Spring Security.
      */
     public static PasswordEncoder encoder() {
         return encoder;

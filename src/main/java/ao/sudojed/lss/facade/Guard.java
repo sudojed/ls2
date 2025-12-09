@@ -3,22 +3,22 @@ package ao.sudojed.lss.facade;
 import ao.sudojed.lss.exception.AccessDeniedException;
 
 /**
- * Classe utilitaria para verificacao de autorizacao.
- * Fornece metodos estaticos para verificar permissoes de forma declarativa.
+ * Utility class for authorization verification.
+ * Provides static methods for declarative permission checking.
  * 
- * <h2>Uso</h2>
+ * <h2>Usage</h2>
  * <pre>{@code
- * // Verificar role
- * Guard.role("ADMIN");  // lanca excecao se nao for admin
+ * // Check role
+ * Guard.role("ADMIN");  // throws exception if not admin
  * 
- * // Verificar qualquer role
+ * // Check any role
  * Guard.anyRole("ADMIN", "MANAGER");
  * 
- * // Verificar se eh dono do recurso
+ * // Check if owner of resource
  * Guard.owner(resourceOwnerId);
  * 
- * // Verificar condicao customizada
- * Guard.when(user.isActive(), "Usuario inativo");
+ * // Check custom condition
+ * Guard.when(user.isActive(), "User is inactive");
  * }</pre>
  * 
  * @author Sudojed Team
@@ -26,96 +26,96 @@ import ao.sudojed.lss.exception.AccessDeniedException;
 public final class Guard {
 
     private Guard() {
-        // Classe utilitaria
+        // Utility class
     }
 
     // ========================================================================
-    // VERIFICACAO DE ROLES
+    // ROLE CHECKS
     // ========================================================================
 
     /**
-     * Exige que o usuario tenha a role especificada.
+     * Requires the user to have the specified role.
      * 
-     * @param role role requerida
-     * @throws AccessDeniedException se nao possui a role
+     * @param role required role
+     * @throws AccessDeniedException if doesn't have the role
      */
     public static void role(String role) {
         Auth.requireAuth();
         if (!Auth.hasRole(role)) {
-            throw new AccessDeniedException("Acesso negado. Role requerida: " + role);
+            throw new AccessDeniedException("Access denied. Required role: " + role);
         }
     }
 
     /**
-     * Exige que o usuario tenha pelo menos uma das roles.
+     * Requires the user to have at least one of the roles.
      * 
-     * @param roles roles aceitas
-     * @throws AccessDeniedException se nao possui nenhuma
+     * @param roles accepted roles
+     * @throws AccessDeniedException if doesn't have any
      */
     public static void anyRole(String... roles) {
         Auth.requireAuth();
         if (!Auth.hasAnyRole(roles)) {
             throw new AccessDeniedException(
-                "Acesso negado. Requer uma das roles: " + String.join(", ", roles));
+                "Access denied. Requires one of: " + String.join(", ", roles));
         }
     }
 
     /**
-     * Exige que o usuario tenha todas as roles especificadas.
+     * Requires the user to have all the specified roles.
      * 
-     * @param roles roles requeridas
-     * @throws AccessDeniedException se nao possui todas
+     * @param roles required roles
+     * @throws AccessDeniedException if doesn't have all
      */
     public static void allRoles(String... roles) {
         Auth.requireAuth();
         if (!Auth.hasAllRoles(roles)) {
             throw new AccessDeniedException(
-                "Acesso negado. Requer todas as roles: " + String.join(", ", roles));
+                "Access denied. Requires all roles: " + String.join(", ", roles));
         }
     }
 
     /**
-     * Exige que o usuario seja admin.
+     * Requires the user to be an admin.
      * 
-     * @throws AccessDeniedException se nao for admin
+     * @throws AccessDeniedException if not admin
      */
     public static void admin() {
         role("ADMIN");
     }
 
     // ========================================================================
-    // VERIFICACAO DE PROPRIEDADE (OWNER)
+    // OWNERSHIP CHECKS
     // ========================================================================
 
     /**
-     * Verifica se o usuario atual eh o dono do recurso.
-     * Admin tem bypass automatico.
+     * Checks if the current user is the owner of the resource.
+     * Admin has automatic bypass.
      * 
-     * @param resourceOwnerId ID do dono do recurso
-     * @throws AccessDeniedException se nao for dono nem admin
+     * @param resourceOwnerId resource owner ID
+     * @throws AccessDeniedException if not owner nor admin
      */
     public static void owner(String resourceOwnerId) {
         Auth.requireAuth();
         
         String currentUserId = Auth.id();
         
-        // Admin pode acessar qualquer recurso
+        // Admin can access any resource
         if (Auth.isAdmin()) {
             return;
         }
         
         if (!currentUserId.equals(resourceOwnerId)) {
             throw new AccessDeniedException(
-                "Acesso negado. Voce nao eh o proprietario deste recurso.");
+                "Access denied. You are not the owner of this resource.");
         }
     }
 
     /**
-     * Verifica se o usuario atual eh o dono OU tem uma role especifica.
+     * Checks if the current user is the owner OR has a specific role.
      * 
-     * @param resourceOwnerId ID do dono do recurso
-     * @param bypassRole role que permite bypass
-     * @throws AccessDeniedException se nao for dono nem tiver a role
+     * @param resourceOwnerId resource owner ID
+     * @param bypassRole role that allows bypass
+     * @throws AccessDeniedException if not owner nor has the role
      */
     public static void ownerOr(String resourceOwnerId, String bypassRole) {
         Auth.requireAuth();
@@ -126,20 +126,20 @@ public final class Guard {
         
         if (!Auth.id().equals(resourceOwnerId)) {
             throw new AccessDeniedException(
-                "Acesso negado. Requer ser proprietario ou ter role: " + bypassRole);
+                "Access denied. Requires ownership or role: " + bypassRole);
         }
     }
 
     // ========================================================================
-    // VERIFICACOES CONDICIONAIS
+    // CONDITIONAL CHECKS
     // ========================================================================
 
     /**
-     * Exige que uma condicao seja verdadeira.
+     * Requires a condition to be true.
      * 
-     * @param condition condicao a verificar
-     * @param message mensagem de erro se falhar
-     * @throws AccessDeniedException se condicao for falsa
+     * @param condition condition to verify
+     * @param message error message if fails
+     * @throws AccessDeniedException if condition is false
      */
     public static void when(boolean condition, String message) {
         if (!condition) {
@@ -148,80 +148,80 @@ public final class Guard {
     }
 
     /**
-     * Exige que uma condicao seja verdadeira.
+     * Requires a condition to be true.
      * 
-     * @param condition condicao a verificar
-     * @throws AccessDeniedException se condicao for falsa
+     * @param condition condition to verify
+     * @throws AccessDeniedException if condition is false
      */
     public static void when(boolean condition) {
-        when(condition, "Acesso negado");
+        when(condition, "Access denied");
     }
 
     /**
-     * Exige autenticacao.
+     * Requires authentication.
      * 
-     * @throws ao.sudojed.lss.exception.UnauthorizedException se nao autenticado
+     * @throws ao.sudojed.lss.exception.UnauthorizedException if not authenticated
      */
     public static void authenticated() {
         Auth.requireAuth();
     }
 
     /**
-     * Permite apenas guests (nao autenticados).
-     * Util para paginas de login/registro.
+     * Allows only guests (not authenticated).
+     * Useful for login/register pages.
      * 
-     * @throws AccessDeniedException se ja estiver autenticado
+     * @throws AccessDeniedException if already authenticated
      */
     public static void guest() {
         if (Auth.check()) {
-            throw new AccessDeniedException("Acao disponivel apenas para visitantes");
+            throw new AccessDeniedException("Action available only for guests");
         }
     }
 
     // ========================================================================
-    // VERIFICACOES COMPOSTAS
+    // FLUENT CHECKS
     // ========================================================================
 
     /**
-     * Inicia uma verificacao fluente.
+     * Starts a fluent verification.
      * 
-     * @return builder para verificacao fluente
+     * @return builder for fluent verification
      */
     public static GuardChain check() {
         return new GuardChain();
     }
 
     /**
-     * Builder para verificacoes fluentes.
+     * Builder for fluent verifications.
      */
     public static class GuardChain {
         private boolean passed = true;
-        private String failMessage = "Acesso negado";
+        private String failMessage = "Access denied";
 
         /**
-         * Adiciona verificacao de role.
+         * Adds role verification.
          */
         public GuardChain role(String role) {
             if (passed && !Auth.hasRole(role)) {
                 passed = false;
-                failMessage = "Role requerida: " + role;
+                failMessage = "Required role: " + role;
             }
             return this;
         }
 
         /**
-         * Adiciona verificacao de propriedade.
+         * Adds ownership verification.
          */
         public GuardChain owner(String resourceOwnerId) {
             if (passed && !Auth.isAdmin() && !Auth.id().equals(resourceOwnerId)) {
                 passed = false;
-                failMessage = "Nao eh proprietario do recurso";
+                failMessage = "Not the resource owner";
             }
             return this;
         }
 
         /**
-         * Adiciona verificacao customizada.
+         * Adds custom verification.
          */
         public GuardChain when(boolean condition, String message) {
             if (passed && !condition) {
@@ -232,21 +232,21 @@ public final class Guard {
         }
 
         /**
-         * Permite passar se qualquer verificacao anterior passou.
-         * Reseta o estado para tentar alternativa.
+         * Allows passing if any previous check passed.
+         * Resets state to try alternative.
          */
         public GuardChain or() {
             if (passed) {
-                return this; // Ja passou, ignora resto
+                return this; // Already passed, ignore rest
             }
-            passed = true; // Reseta para tentar alternativa
+            passed = true; // Reset to try alternative
             return this;
         }
 
         /**
-         * Finaliza e lanca excecao se nenhuma verificacao passou.
+         * Finalizes and throws exception if no check passed.
          * 
-         * @throws AccessDeniedException se todas verificacoes falharam
+         * @throws AccessDeniedException if all checks failed
          */
         public void authorize() {
             if (!passed) {

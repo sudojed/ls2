@@ -43,8 +43,8 @@ import ao.sudojed.lss.jwt.JwtService;
 import ao.sudojed.lss.resolver.LazyUserArgumentResolver;
 
 /**
- * Auto-configuração do LazySpringSecurity.
- * Configura Spring Security por baixo dos panos de forma transparente.
+ * LazySpringSecurity auto-configuration.
+ * Configures Spring Security transparently under the hood.
  *
  * @author Sudojed Team
  */
@@ -76,8 +76,8 @@ public class LazySecurityAutoConfiguration implements ImportAware, WebMvcConfigu
     }
 
     /**
-     * Mescla configurações da annotation @EnableLazySecurity com application.yml.
-     * Annotation tem prioridade sobre properties.
+     * Merges @EnableLazySecurity annotation configuration with application.yml.
+     * Annotation takes priority over properties.
      */
     private void mergeAnnotationWithProperties() {
         if (enableLazySecurityAttributes == null) {
@@ -245,7 +245,7 @@ public class LazySecurityAutoConfiguration implements ImportAware, WebMvcConfigu
             for (String path : properties.getPublicPaths()) {
                 auth.requestMatchers(path).permitAll();
             }
-            // Demais requerem autenticação
+            // Other requests require authentication
             auth.anyRequest().authenticated();
         });
 

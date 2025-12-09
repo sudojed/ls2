@@ -12,17 +12,13 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Controller administrativo demonstrando uso das facades Auth e Guard.
+ * Administrative controller demonstrating Auth and Guard facades.
  * 
- * Duas formas de proteger endpoints:
- * 1. Declarativa: @Admin, @LazySecured (verificacao automatica via AOP)
- * 2. Imperativa: Guard.admin(), Guard.role() (verificacao manual no codigo)
+ * Two ways to protect endpoints:
+ * 1. Declarative: @Admin, @LazySecured (automatic verification via AOP)
+ * 2. Imperative: Guard.admin(), Guard.role() (manual verification in code)
  * 
- * Comparacao com Laravel:
- * - @Admin           -> middleware('admin')
- * - Guard.admin()    -> Gate::authorize('admin')
- * - Auth.user()      -> auth()->user()
- * - Auth.id()        -> auth()->id()
+ * @author Sudojed Team
  */
 @RestController
 @RequestMapping("/api/admin")
@@ -35,15 +31,15 @@ public class AdminController {
     }
 
     /**
-     * Lista todos os usuarios do sistema.
+     * Lists all system users.
      * 
-     * Usa @Admin para verificacao declarativa.
-     * Usa Auth.username() para obter dados do admin logado.
+     * Uses @Admin for declarative verification.
+     * Uses Auth.username() to get logged admin data.
      */
     @Admin
     @GetMapping("/users")
     public Map<String, Object> listUsers() {
-        // Sem parametro LazyUser - usa Auth facade!
+        // No LazyUser parameter - uses Auth facade!
         List<Map<String, Object>> users = userService.findAll().stream()
             .map(user -> Map.<String, Object>of(
                 "id", user.getId(),
@@ -62,14 +58,14 @@ public class AdminController {
     }
 
     /**
-     * Obtem detalhes de um usuario especifico.
+     * Gets details of a specific user.
      * 
-     * Usa Guard.admin() para verificacao imperativa (estilo Laravel Gate).
-     * Isso permite logica condicional antes da verificacao.
+     * Uses Guard.admin() for imperative verification.
+     * This allows conditional logic before the verification.
      */
     @GetMapping("/users/{userId}")
     public ResponseEntity<Map<String, Object>> getUser(@PathVariable String userId) {
-        // Verificacao imperativa - como Gate::authorize('admin') no Laravel
+        // Imperative verification
         Guard.admin();
         
         return userService.findById(userId)
@@ -85,22 +81,22 @@ public class AdminController {
     }
 
     /**
-     * Deleta um usuario.
+     * Deletes a user.
      * 
-     * Demonstra uso combinado de Guard e Auth:
-     * - Guard.admin() para autorizar
-     * - Auth.id() para verificar auto-delecao
+     * Demonstrates combined usage of Guard and Auth:
+     * - Guard.admin() to authorize
+     * - Auth.id() to check self-deletion
      */
     @DeleteMapping("/users/{userId}")
     public ResponseEntity<Map<String, Object>> deleteUser(@PathVariable String userId) {
-        // Verificacao imperativa
+        // Imperative verification
         Guard.admin();
         
-        // Nao permite auto-delecao - usa Auth.id()!
+        // Does not allow self-deletion - uses Auth.id()!
         if (userId.equals(Auth.id())) {
             return ResponseEntity.badRequest().body(Map.of(
                 "error", "CANNOT_DELETE_SELF",
-                "message", "Voce nao pode deletar sua propria conta"
+                "message", "You cannot delete your own account"
             ));
         }
 
@@ -108,7 +104,7 @@ public class AdminController {
         
         if (deleted) {
             return ResponseEntity.ok(Map.of(
-                "message", "Usuario deletado com sucesso",
+                "message", "User deleted successfully",
                 "deletedUserId", userId,
                 "deletedBy", Auth.username()  // Auth facade!
             ));
@@ -118,23 +114,23 @@ public class AdminController {
     }
 
     /**
-     * Adiciona role a um usuario.
+     * Adds role to a user.
      * 
-     * Usa Guard.role() para exigir role especifica.
+     * Uses Guard.role() to require specific role.
      */
     @PostMapping("/users/{userId}/roles")
     public ResponseEntity<Map<String, Object>> addRole(
             @PathVariable String userId,
             @RequestBody Map<String, String> body) {
         
-        // Exige role ADMIN - como Gate::authorize('manage-roles') no Laravel
+        // Requires ADMIN role
         Guard.role("ADMIN");
         
         String role = body.get("role");
         if (role == null || role.isBlank()) {
             return ResponseEntity.badRequest().body(Map.of(
                 "error", "MISSING_ROLE",
-                "message", "Campo 'role' eh obrigatorio"
+                "message", "Field 'role' is required"
             ));
         }
 
@@ -143,7 +139,7 @@ public class AdminController {
                 user.addRole(role);
                 userService.save(user);
                 return ResponseEntity.ok(Map.<String, Object>of(
-                    "message", "Role adicionada com sucesso",
+                    "message", "Role added successfully",
                     "userId", userId,
                     "roles", user.getRoles()
                 ));
@@ -152,13 +148,13 @@ public class AdminController {
     }
 
     /**
-     * Dashboard administrativo com estatisticas.
+     * Administrative dashboard with statistics.
      * 
-     * Demonstra verificacao fluente com Guard.check()
+     * Demonstrates fluent verification with Guard.check()
      */
     @GetMapping("/dashboard")
     public Map<String, Object> dashboard() {
-        // Verificacao fluente - permite combinar condicoes
+        // Fluent verification - allows combining conditions
         Guard.check()
             .role("ADMIN")
             .authorize();
@@ -181,25 +177,25 @@ public class AdminController {
                 "roles", Auth.user().getRoles(),
                 "isAdmin", Auth.isAdmin()
             ),
-            "message", "Bem-vindo ao painel administrativo!"
+            "message", "Welcome to the admin panel!"
         );
     }
 
     /**
-     * Endpoint que aceita ADMIN ou MANAGER.
+     * Endpoint that accepts ADMIN or MANAGER.
      * 
-     * Demonstra Guard.anyRole() para multiplas roles aceitas.
+     * Demonstrates Guard.anyRole() for multiple accepted roles.
      */
     @GetMapping("/reports")
     public Map<String, Object> reports() {
-        // Aceita ADMIN ou MANAGER - como middleware('role:admin,manager') no Laravel
+        // Accepts ADMIN or MANAGER
         Guard.anyRole("ADMIN", "MANAGER");
         
         return Map.of(
             "reports", List.of(
-                Map.of("name", "Vendas Mensais", "value", 15000),
-                Map.of("name", "Novos Usuarios", "value", 42),
-                Map.of("name", "Pedidos Pendentes", "value", 7)
+                Map.of("name", "Monthly Sales", "value", 15000),
+                Map.of("name", "New Users", "value", 42),
+                Map.of("name", "Pending Orders", "value", 7)
             ),
             "generatedBy", Auth.username(),
             "userRoles", Auth.user().getRoles()

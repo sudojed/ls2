@@ -3,7 +3,7 @@ package ao.sudojed.lss.exception;
 import org.springframework.http.HttpStatus;
 
 /**
- * Exceção lançada quando acesso é negado (403 Forbidden).
+ * Exception thrown when access is denied (403 Forbidden).
  *
  * @author Sudojed Team
  */

@@ -3,8 +3,8 @@ package ao.sudojed.lss.exception;
 import org.springframework.http.HttpStatus;
 
 /**
- * Exceção base do LazySpringSecurity.
- * Todas as exceções de segurança estendem desta classe.
+ * Base exception for LazySpringSecurity.
+ * All security exceptions extend this class.
  *
  * @author Sudojed Team
  */

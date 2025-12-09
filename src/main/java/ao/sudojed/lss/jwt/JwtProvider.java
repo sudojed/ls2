@@ -5,19 +5,19 @@ import java.util.Map;
 import ao.sudojed.lss.core.LazyUser;
 
 /**
- * Interface para geração e validação de tokens JWT.
- * Implemente esta interface para customizar a lógica de tokens.
+ * Interface for JWT token generation and validation.
+ * Implement this interface to customize token logic.
  * 
- * <h2>Implementação Padrão</h2>
- * O LSS fornece {@link DefaultJwtProvider} que funciona out-of-the-box.
+ * <h2>Default Implementation</h2>
+ * LSS provides {@link DefaultJwtProvider} that works out-of-the-box.
  * 
- * <h2>Implementação Customizada</h2>
+ * <h2>Custom Implementation</h2>
  * <pre>{@code
  * @Component
  * public class MyJwtProvider implements JwtProvider {
  *     @Override
  *     public String generateToken(LazyUser user) {
- *         // Sua lógica customizada
+ *         // Your custom logic
  *     }
  *     // ...
  * }
@@ -28,54 +28,54 @@ import ao.sudojed.lss.core.LazyUser;
 public interface JwtProvider {
 
     /**
-     * Gera um access token para o usuário.
+     * Generates an access token for the user.
      */
     String generateToken(LazyUser user);
 
     /**
-     * Gera um access token com claims adicionais.
+     * Generates an access token with additional claims.
      */
     String generateToken(LazyUser user, Map<String, Object> extraClaims);
 
     /**
-     * Gera um refresh token para o usuário.
+     * Generates a refresh token for the user.
      */
     String generateRefreshToken(LazyUser user);
 
     /**
-     * Valida um token e retorna o usuário.
+     * Validates a token and returns the user.
      * 
-     * @throws ao.sudojed.lss.exception.LazySecurityException se token inválido
+     * @throws ao.sudojed.lss.exception.LazySecurityException if token is invalid
      */
     LazyUser validateToken(String token);
 
     /**
-     * Verifica se um token é válido (não expirado, assinatura correta).
+     * Checks if a token is valid (not expired, correct signature).
      */
     boolean isTokenValid(String token);
 
     /**
-     * Verifica se um token está expirado.
+     * Checks if a token is expired.
      */
     boolean isTokenExpired(String token);
 
     /**
-     * Extrai o subject (geralmente userId ou username) do token.
+     * Extracts the subject (usually userId or username) from the token.
      */
     String extractSubject(String token);
 
     /**
-     * Extrai um claim específico do token.
+     * Extracts a specific claim from the token.
      */
     <T> T extractClaim(String token, String claimName, Class<T> type);
 
     /**
-     * Extrai todos os claims do token.
+     * Extracts all claims from the token.
      */
     Map<String, Object> extractAllClaims(String token);
 
     /**
-     * Renova um token (gera novo access token a partir de refresh token).
+     * Renews a token (generates new access token from refresh token).
      */
     String refreshToken(String refreshToken);
 }

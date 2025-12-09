@@ -6,27 +6,27 @@ import ao.sudojed.lss.core.LazySecurityContext;
 import ao.sudojed.lss.core.LazyUser;
 
 /**
- * Utilitários de segurança do LazySpringSecurity.
- * Métodos convenientes para verificações de segurança em código.
+ * LazySpringSecurity utility class.
+ * Convenient methods for security checks in code.
  * 
- * <h2>Uso</h2>
+ * <h2>Usage</h2>
  * <pre>{@code
- * // Verificar autenticação
+ * // Check authentication
  * if (LazyAuth.isAuthenticated()) {
- *     // usuário logado
+ *     // user is logged in
  * }
  * 
- * // Verificar roles
+ * // Check roles
  * if (LazyAuth.hasRole("ADMIN")) {
- *     // é admin
+ *     // is admin
  * }
  * 
- * // Executar código condicionalmente
+ * // Execute code conditionally
  * LazyAuth.ifRole("ADMIN", () -> {
- *     // só executa se for admin
+ *     // only executes if admin
  * });
  * 
- * // Obter usuário atual
+ * // Get current user
  * LazyUser user = LazyAuth.user();
  * }</pre>
  *
@@ -39,77 +39,77 @@ public final class LazyAuth {
     }
 
     /**
-     * Obtém o usuário atual.
+     * Gets the current user.
      */
     public static LazyUser user() {
         return LazySecurityContext.getCurrentUser();
     }
 
     /**
-     * Obtém o ID do usuário atual.
+     * Gets the current user's ID.
      */
     public static String userId() {
         return LazySecurityContext.getUserId();
     }
 
     /**
-     * Obtém o username do usuário atual.
+     * Gets the current user's username.
      */
     public static String username() {
         return LazySecurityContext.getUsername();
     }
 
     /**
-     * Verifica se está autenticado.
+     * Checks if authenticated.
      */
     public static boolean isAuthenticated() {
         return LazySecurityContext.isAuthenticated();
     }
 
     /**
-     * Verifica se é anônimo.
+     * Checks if anonymous.
      */
     public static boolean isAnonymous() {
         return !isAuthenticated();
     }
 
     /**
-     * Verifica se tem role.
+     * Checks if has role.
      */
     public static boolean hasRole(String role) {
         return LazySecurityContext.hasRole(role);
     }
 
     /**
-     * Verifica se tem qualquer uma das roles.
+     * Checks if has any of the roles.
      */
     public static boolean hasAnyRole(String... roles) {
         return LazySecurityContext.hasAnyRole(roles);
     }
 
     /**
-     * Verifica se tem todas as roles.
+     * Checks if has all the roles.
      */
     public static boolean hasAllRoles(String... roles) {
         return LazySecurityContext.hasAllRoles(roles);
     }
 
     /**
-     * Verifica se tem permissão.
+     * Checks if has permission.
      */
     public static boolean hasPermission(String permission) {
         return LazySecurityContext.hasPermission(permission);
     }
 
     /**
-     * Verifica se é admin.
+     * Checks if is admin.
      */
     public static boolean isAdmin() {
         return LazySecurityContext.isAdmin();
     }
 
     /**
-     * Executa ação se autenticado.
+     * Executes action if authenticated.
      */
     public static void ifAuthenticated(Runnable action) {
         if (isAuthenticated()) {
@@ -118,7 +118,7 @@ public final class LazyAuth {
     }
 
     /**
-     * Executa ação se tem role.
+     * Executes action if has role.
      */
     public static void ifRole(String role, Runnable action) {
         if (hasRole(role)) {
@@ -127,7 +127,7 @@ public final class LazyAuth {
     }
 
     /**
-     * Executa ação se admin.
+     * Executes action if admin.
      */
     public static void ifAdmin(Runnable action) {
         if (isAdmin()) {
@@ -136,28 +136,28 @@ public final class LazyAuth {
     }
 
     /**
-     * Retorna valor se autenticado, senão valor padrão.
+     * Returns value if authenticated, else default value.
      */
     public static <T> T ifAuthenticated(Supplier<T> supplier, T defaultValue) {
         return isAuthenticated() ? supplier.get() : defaultValue;
     }
 
     /**
-     * Retorna valor se tem role, senão valor padrão.
+     * Returns value if has role, else default value.
      */
     public static <T> T ifRole(String role, Supplier<T> supplier, T defaultValue) {
         return hasRole(role) ? supplier.get() : defaultValue;
     }
 
     /**
-     * Verifica se o usuário atual é o dono do recurso.
+     * Checks if the current user is the resource owner.
      */
     public static boolean isOwner(String resourceOwnerId) {
         return userId().equals(resourceOwnerId);
     }
 
     /**
-     * Verifica se é admin ou dono do recurso.
+     * Checks if is admin or resource owner.
      */
     public static boolean isAdminOrOwner(String resourceOwnerId) {
         return isAdmin() || isOwner(resourceOwnerId);

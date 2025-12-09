@@ -11,9 +11,9 @@ import org.springframework.context.annotation.Import;
 import ao.sudojed.lss.config.LazySecurityAutoConfiguration;
 
 /**
- * Habilita o LazySpringSecurity na aplicação Spring Boot.
+ * Enables LazySpringSecurity in a Spring Boot application.
  * 
- * <h2>Uso Básico</h2>
+ * <h2>Basic Usage</h2>
  * <pre>{@code
  * @EnableLazySecurity(
  *     jwt = @JwtConfig(secret = "${app.jwt.secret}"),
@@ -23,7 +23,7 @@ import ao.sudojed.lss.config.LazySecurityAutoConfiguration;
  * public class MyApplication { }
  * }</pre>
  * 
- * <h2>Configuração Completa</h2>
+ * <h2>Full Configuration</h2>
  * <pre>{@code
  * @EnableLazySecurity(
  *     jwt = @JwtConfig(
@@ -48,54 +48,54 @@ import ao.sudojed.lss.config.LazySecurityAutoConfiguration;
 public @interface EnableLazySecurity {
 
     /**
-     * Configuração JWT. Obrigatório para autenticação stateless.
+     * JWT configuration. Required for stateless authentication.
      */
     JwtConfig jwt() default @JwtConfig;
 
     /**
-     * Paths públicos que não requerem autenticação.
-     * Suporta Ant patterns: /api/**, /public/*, etc.
+     * Public paths that do not require authentication.
+     * Supports Ant patterns: /api/**, /public/*, etc.
      */
     String[] publicPaths() default {};
 
     /**
-     * Role padrão para usuários autenticados sem role específica.
+     * Default role for authenticated users without a specific role.
      */
     String defaultRole() default "USER";
 
     /**
-     * Habilita/desabilita CSRF protection.
-     * Padrão: false (APIs REST geralmente não precisam)
+     * Enables/disables CSRF protection.
+     * Default: false (REST APIs typically don't need it)
      */
     boolean csrfEnabled() default false;
 
     /**
-     * Habilita/desabilita CORS.
+     * Enables/disables CORS.
      */
     boolean corsEnabled() default true;
 
     /**
-     * Origins permitidas para CORS.
+     * Allowed origins for CORS.
      */
     String[] corsOrigins() default {"*"};
 
     /**
-     * Métodos HTTP permitidos para CORS.
+     * Allowed HTTP methods for CORS.
      */
     String[] corsMethods() default {"GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"};
 
     /**
-     * Headers permitidos para CORS.
+     * Allowed headers for CORS.
      */
     String[] corsHeaders() default {"*"};
 
     /**
-     * Paths que requerem HTTPS.
+     * Paths that require HTTPS.
      */
     String[] securePaths() default {};
 
     /**
-     * Habilita logs de debug para troubleshooting.
+     * Enables debug logging for troubleshooting.
      */
     boolean debug() default false;
 }
