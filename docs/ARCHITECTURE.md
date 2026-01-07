@@ -22,7 +22,7 @@ O LSS reduz isso para uma única anotação: `@EnableLazySecurity`.
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │                      Camada de Anotações                        │
-│  @EnableLazySecurity  @LazySecured  @Public  @Admin  @Owner     │
+│  @EnableLazySecurity  @Secured  @Public  @Owner  @RateLimit     │
 └─────────────────────────────────────────────────────────────────┘
                               │
                               ▼
@@ -84,29 +84,38 @@ public @interface EnableLazySecurity {
 
 **Mecanismo**: Implementa `ImportAware` para ler os atributos da anotação em tempo de execução e mesclar com `application.yml`.
 
-#### `@LazySecured`
-Protege métodos com verificação de roles/permissões.
+#### `@Secured`
+Anotação unificada para proteção de endpoints. Substitui `@LazySecured`, `@Authenticated` e `@Admin` (deprecated).
 
 ```java
 @Target({ElementType.METHOD, ElementType.TYPE})
 @Retention(RetentionPolicy.RUNTIME)
-public @interface LazySecured {
-    String[] roles() default {};
+public @interface Secured {
+    String[] value() default {};        // Roles (atalho)
+    String[] roles() default {};        // Alias para value()
     String[] permissions() default {};
-    Logic logic() default Logic.ANY;  // ANY ou ALL
+    boolean all() default false;        // false=ANY, true=ALL
     String message() default "Access denied";
+    String condition() default "";      // SpEL expression
 }
 ```
 
-#### `@Admin` e `@Authenticated`
-Meta-anotações que estendem `@LazySecured`:
+**Exemplos de uso:**
+```java
+@Secured                          // Qualquer usuário autenticado
+@Secured("ADMIN")                 // Requer role ADMIN
+@Secured({"ADMIN", "MANAGER"})    // Qualquer uma das roles
+@Secured(value = {"A", "B"}, all = true)  // Todas as roles necessárias
+```
+
+#### `@LazySecured`, `@Admin`, `@Authenticated` (Deprecated)
+Estas anotações foram **deprecadas** em favor de `@Secured`:
 
 ```java
-@LazySecured(roles = "ADMIN")
-public @interface Admin {}
-
-@LazySecured
-public @interface Authenticated {}
+// Antes (deprecated)          // Depois (recomendado)
+@Authenticated            →    @Secured
+@Admin                    →    @Secured("ADMIN")
+@LazySecured(roles="X")   →    @Secured("X")
 ```
 
 #### `@Owner`
@@ -311,18 +320,17 @@ public class LazyJwtFilter extends OncePerRequestFilter {
 ### 5. Aspectos (`ao.sudojed.lss.aspect`)
 
 #### `LazySecurityAspect`
-Intercepta métodos anotados com `@LazySecured`, `@Admin`, `@Authenticated`, `@Owner`.
+Intercepta métodos anotados com `@Secured`, `@Owner`, e as annotations deprecated `@LazySecured`, `@Admin`, `@Authenticated`.
 
 ```java
 @Aspect
 @Order(100)
 public class LazySecurityAspect {
 
-    @Before("@annotation(ao.sudojed.lss.annotation.LazySecured) || " +
-            "@annotation(ao.sudojed.lss.annotation.Admin) || " +
-            "@annotation(ao.sudojed.lss.annotation.Authenticated)")
-    public void checkLazySecured(JoinPoint joinPoint) {
-        LazySecured annotation = getAnnotation(joinPoint, LazySecured.class);
+    @Before("@annotation(ao.sudojed.lss.annotation.Secured) || " +
+            "@within(ao.sudojed.lss.annotation.Secured)")
+    public void checkSecured(JoinPoint joinPoint) {
+        Secured annotation = getAnnotation(joinPoint, Secured.class);
         LazyUser user = LazySecurityContext.getCurrentUser();
         
         // 1. Verifica autenticação
@@ -330,13 +338,14 @@ public class LazySecurityAspect {
             throw new UnauthorizedException("Authentication required");
         }
         
-        // 2. Verifica roles
-        String[] roles = annotation.roles();
+        // 2. Verifica roles (value() ou roles())
+        String[] roles = annotation.value().length > 0 
+            ? annotation.value() 
+            : annotation.roles();
         if (roles.length > 0) {
-            boolean hasRole = switch (annotation.logic()) {
-                case ANY -> user.hasAnyRole(roles);
-                case ALL -> user.hasAllRoles(roles);
-            };
+            boolean hasRole = annotation.all() 
+                ? user.hasAllRoles(roles) 
+                : user.hasAnyRole(roles);
             if (!hasRole) {
                 throw new AccessDeniedException(annotation.message());
             }
@@ -489,7 +498,7 @@ public final class Guard {
 
 | Caso de Uso | Abordagem |
 |-------------|-----------|
-| Proteção simples de endpoint | Anotação (`@Admin`, `@LazySecured`) |
+| Proteção simples de endpoint | Anotação (`@Secured`, `@Secured("ADMIN")`) |
 | Lógica condicional de autorização | `Guard` facade |
 | Acesso a dados do usuário em service | `Auth` facade |
 | Validação de ownership em método | `@Owner` ou `Guard.owner()` |
@@ -616,7 +625,7 @@ Registrado em `META-INF/spring/org.springframework.boot.autoconfigure.AutoConfig
    └── Permite acesso (usuário autenticado)
 
 4. LazySecurityAspect (AOP)
-   ├── @LazySecured encontrado no método
+   ├── @Secured encontrado no método
    ├── Verifica user.isAuthenticated() ✓
    ├── Verifica roles (se especificadas)
    └── Permite execução
@@ -657,7 +666,7 @@ Registrado em `META-INF/spring/org.springframework.boot.autoconfigure.AutoConfig
    └── Permite (usuário autenticado)
 
 4. LazySecurityAspect (AOP)
-   ├── @Admin encontrado no método
+   ├── @Secured("ADMIN") encontrado no método
    ├── Verifica user.hasRole("ADMIN") ✗
    └── throw AccessDeniedException
 
@@ -753,10 +762,11 @@ O projeto inclui uma demo application completa com **73 testes** que demonstram 
 |-----------------|-----|-----------|
 | `AuthControllerTest` | 10 | Register, Login, Refresh tokens, Error cases |
 | `ProfileControllerTest` | 9 | Profile CRUD, LazyUser injection, Auth facade |
-| `AdminControllerTest` | 20 | @Admin, role checks, user management, dashboard |
-| `OrderControllerTest` | 15 | @Owner, @anyRole, CRUD, authorization |
+| `AdminControllerTest` | 20 | @Secured("ADMIN"), role checks, user management, dashboard |
+| `OrderControllerTest` | 15 | @Owner, @Secured with multiple roles, CRUD, authorization |
 | `SimpleAuthControllerTest` | 5 | Public endpoints, annotation variants |
 | `UserServiceTest` | 14 | Service layer, password hashing, role management |
+| `SecuredAnnotationTest` | 15 | @Secured annotation, migration from deprecated annotations |
 
 Executar os testes:
 
@@ -785,7 +795,7 @@ demo/
 ├── controller/
 │   ├── AuthController.java   # @Login, @Register, @RefreshToken
 │   ├── ProfileController.java # LazyUser injection, Auth facade
-│   ├── AdminController.java  # @Admin, @LazySecured(anyRole)
+│   ├── AdminController.java  # @Secured("ADMIN"), Guard facade
 │   ├── OrderController.java  # @Owner, resource-level security
 │   └── SimpleAuthController.java # Simplified annotations
 ├── service/
@@ -820,7 +830,7 @@ demo/
 **Controller com LazyUser injetado:**
 ```java
 @GetMapping("/profile")
-@Authenticated
+@Secured
 public Map<String, Object> getProfile(LazyUser user) {
     return Map.of(
         "id", user.getId(),
@@ -833,7 +843,7 @@ public Map<String, Object> getProfile(LazyUser user) {
 **Controller com Auth facade:**
 ```java
 @GetMapping("/me")
-@Authenticated
+@Secured
 public Map<String, Object> me() {
     return Map.of(
         "id", Auth.id(),
@@ -846,11 +856,11 @@ public Map<String, Object> me() {
 **Proteção por role:**
 ```java
 @GetMapping("/users")
-@Admin  // Apenas ADMIN
+@Secured("ADMIN")  // Apenas ADMIN
 public List<User> listUsers() { ... }
 
 @GetMapping("/reports")
-@LazySecured(anyRole = {"ADMIN", "MANAGER"})  // ADMIN ou MANAGER
+@Secured({"ADMIN", "MANAGER"})  // ADMIN ou MANAGER
 public Map<String, Object> reports() { ... }
 ```
 
@@ -1007,7 +1017,32 @@ Spring Boot: 3.4+
 
 ## Changelog
 
-### v1.0.0-SNAPSHOT (Atual)
+### v1.1.0-SNAPSHOT (Atual)
+
+**Breaking Changes:**
+- `@LazySecured`, `@Admin`, `@Authenticated` foram **deprecadas** em favor de `@Secured`
+- Nova annotation unificada `@Secured` substitui todas as annotations de autorização
+
+**Novas Funcionalidades:**
+- `@Secured` - annotation unificada para toda lógica de autorização:
+  - `@Secured` = qualquer usuário autenticado (substitui `@Authenticated`)
+  - `@Secured("ADMIN")` = requer role ADMIN (substitui `@Admin`)
+  - `@Secured({"A", "B"})` = requer qualquer uma das roles (OR logic)
+  - `@Secured(value = {"A", "B"}, all = true)` = requer todas as roles (AND logic)
+  - `@Secured(permissions = "x:write")` = requer permissão específica
+  - `@Secured(condition = "#id == principal.id")` = expressão SpEL
+
+**Migração:**
+```java
+// Antes (deprecated)          // Depois (recomendado)
+@Authenticated            →    @Secured
+@Admin                    →    @Secured("ADMIN")
+@LazySecured(roles="X")   →    @Secured("X")
+@LazySecured(roles={"A","B"}, logic=RoleLogic.ANY)  →  @Secured({"A","B"})
+@LazySecured(roles={"A","B"}, logic=RoleLogic.ALL)  →  @Secured(value={"A","B"}, all=true)
+```
+
+### v1.0.0-SNAPSHOT
 
 **Funcionalidades:**
 - Anotações declarativas: `@LazySecured`, `@Admin`, `@Authenticated`, `@Owner`, `@Public`

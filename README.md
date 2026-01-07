@@ -69,8 +69,8 @@ public class MyController {
         return "OK";
     }
 
-    // Requires authentication
-    @Authenticated
+    // Requires authentication (any logged-in user)
+    @Secured
     @GetMapping("/profile")
     public User getProfile(Principal principal) {
         return userService.findById(principal.getId());
@@ -134,25 +134,17 @@ public String getDocs() { ... }
 public String health() { ... }
 ```
 
-### `@Authenticated`
-Requires user to be logged in (any valid authentication).
+### `@Secured`
+Unified security annotation for authentication and authorization.
+Replaces the deprecated `@Authenticated`, `@Admin`, and `@LazySecured` annotations.
 
 ```java
-@Authenticated
+// Any authenticated user (replaces @Authenticated)
+@Secured
 @GetMapping("/me")
 public User getCurrentUser(Principal principal) { ... }
 
-// Custom error message
-@Authenticated(message = "Please login to continue")
-@GetMapping("/dashboard")
-public Dashboard getDashboard() { ... }
-```
-
-### `@Secured`
-Restricts access to users with specific roles.
-
-```java
-// Single role
+// Single role required (replaces @Admin for ADMIN role)
 @Secured("ADMIN")
 @DeleteMapping("/users/{id}")
 public void deleteUser(@PathVariable Long id) { ... }
@@ -163,22 +155,42 @@ public void deleteUser(@PathVariable Long id) { ... }
 public Post updatePost(@PathVariable Long id) { ... }
 
 // Multiple roles (AND logic - all roles required)
-@Secured(value = {"VERIFIED", "PREMIUM"}, requireAll = true)
+@Secured(value = {"VERIFIED", "PREMIUM"}, all = true)
 @GetMapping("/exclusive-content")
 public Content getExclusiveContent() { ... }
-```
 
-### `@Permissions`
-Fine-grained permission-based access control.
-
-```java
-@Permissions("posts:write")
+// With permissions
+@Secured(permissions = "posts:write")
 @PostMapping("/posts")
 public Post createPost(@RequestBody Post post) { ... }
 
-@Permissions(value = {"billing:read", "billing:export"}, requireAll = true)
+// With SpEL condition
+@Secured(condition = "#userId == principal.id")
+@GetMapping("/users/{userId}/settings")
+public Settings getSettings(@PathVariable String userId) { ... }
+
+// Custom error message
+@Secured(value = "ADMIN", message = "Only administrators can access this")
+@GetMapping("/admin/config")
+public Config getConfig() { ... }
+```
+
+### `@Secured` with Permissions
+Fine-grained permission-based access control using the `permissions` attribute.
+
+```java
+@Secured(permissions = "posts:write")
+@PostMapping("/posts")
+public Post createPost(@RequestBody Post post) { ... }
+
+@Secured(permissions = {"billing:read", "billing:export"})
 @GetMapping("/reports/billing")
 public Report getBillingReport() { ... }
+
+// Combine roles and permissions
+@Secured(roles = "USER", permissions = "posts:write")
+@PostMapping("/posts")
+public Post createPost(@RequestBody Post post) { ... }
 ```
 
 ### `@Owner`
@@ -386,7 +398,7 @@ public class AuthController {
 
 ```java
 @GetMapping("/me")
-@Authenticated
+@Secured
 public UserResponse getCurrentUser(Principal principal) {
     // Principal is automatically injected
     return new UserResponse(
@@ -498,7 +510,7 @@ public class SecurityConfig {
 @EnableLazySecurity
 public class MyApp { }
 
-// That's it! Use @Public, @Secured, @Authenticated on your endpoints
+// That's it! Use @Public and @Secured on your endpoints
 ```
 
 ---
