@@ -90,10 +90,19 @@ public class JwtService {
 
     /**
      * Renews tokens using refresh token.
+     * Validates the refresh token and creates a new token pair.
      */
     public TokenPair refresh(String refreshToken) {
-        LazyUser user = jwtProvider.validateToken(refreshToken);
-        return createTokens(user);
+        // Use refreshToken method which validates refresh tokens specifically
+        String newAccessToken = jwtProvider.refreshToken(refreshToken);
+        // Extract user ID from refresh token to generate new refresh token
+        String userId = jwtProvider.extractSubject(refreshToken);
+        LazyUser user = LazyUser.builder()
+                .id(userId)
+                .username(userId)
+                .build();
+        String newRefreshToken = jwtProvider.generateRefreshToken(user);
+        return TokenPair.of(newAccessToken, newRefreshToken, jwtConfig.getExpiration() / 1000);
     }
 
     /**

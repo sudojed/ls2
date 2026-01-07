@@ -1,9 +1,10 @@
 package ao.sudojed.lss.demo;
 
-import ao.sudojed.lss.annotation.EnableLazySecurity;
-import ao.sudojed.lss.annotation.JwtConfig;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+
+import ao.sudojed.lss.annotation.EnableLazySecurity;
+import ao.sudojed.lss.annotation.JwtConfig;
 
 /**
  * Aplicacao de demonstracao do LazySpringSecurity (LSS)
@@ -37,8 +38,8 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
     publicPaths = {"/auth/**", "/error"},
     jwt = @JwtConfig(
         secret = "${JWT_SECRET:minha-chave-secreta-super-segura-para-demo-lss-2024}",
-        expiration = 3600,           // 1 hora
-        refreshExpiration = 604800,  // 7 dias
+        expiration = 3600000L,           // 1 hora em milissegundos
+        refreshExpiration = 604800000L,  // 7 dias em milissegundos
         issuer = "lss-demo"
     ),
     corsEnabled = true,

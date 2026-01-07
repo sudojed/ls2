@@ -372,7 +372,131 @@ public class LazySecurityAspect {
 
 ---
 
-### 6. Exceções (`ao.sudojed.lss.exception`)
+### 6. Facades (`ao.sudojed.lss.facade`)
+
+Facades fornecem acesso estático ao contexto de segurança sem injeção de dependência.
+
+#### `Auth` - Acesso ao Usuário Autenticado
+
+Facade estática para acessar informações do usuário atual:
+
+```java
+import ao.sudojed.lss.facade.Auth;
+
+// Acesso direto
+String userId = Auth.id();
+String username = Auth.username();
+String email = Auth.claim("email");
+Set<String> roles = Auth.user().getRoles();
+
+// Verificações
+boolean isAdmin = Auth.isAdmin();
+boolean isGuest = Auth.guest();
+
+// Hashing de senha (BCrypt)
+String hash = Auth.hashPassword("plainPassword");
+boolean valid = Auth.checkPassword("plainPassword", hash);
+```
+
+**Implementação**:
+```java
+public final class Auth {
+    private Auth() {}  // Utility class
+    
+    public static LazyUser user() {
+        return LazySecurityContext.getCurrentUser();
+    }
+    
+    public static String id() {
+        return user().getId();
+    }
+    
+    public static boolean isAdmin() {
+        return user().isAdmin();
+    }
+    
+    public static boolean guest() {
+        return !user().isAuthenticated();
+    }
+    
+    public static String hashPassword(String rawPassword) {
+        return BCrypt.hashpw(rawPassword, BCrypt.gensalt());
+    }
+    
+    public static boolean checkPassword(String rawPassword, String hashedPassword) {
+        return BCrypt.checkpw(rawPassword, hashedPassword);
+    }
+}
+```
+
+#### `Guard` - Verificações Imperativas
+
+Facade para validações de autorização:
+
+```java
+import ao.sudojed.lss.facade.Guard;
+
+// Verificações simples (lança AccessDeniedException)
+Guard.admin();              // Requer role ADMIN
+Guard.role("MANAGER");      // Requer role específica
+Guard.anyRole("ADMIN", "MODERATOR");  // Requer qualquer role
+Guard.owner(userId);        // Verifica ownership
+
+// API fluente
+Guard.check()
+    .role("ADMIN")
+    .permission("data:read")
+    .authorize();
+```
+
+**Implementação**:
+```java
+public final class Guard {
+    private Guard() {}
+    
+    public static void admin() {
+        if (!Auth.isAdmin()) {
+            throw new AccessDeniedException("Admin role required");
+        }
+    }
+    
+    public static void role(String role) {
+        if (!Auth.user().hasRole(role)) {
+            throw new AccessDeniedException("Role " + role + " required");
+        }
+    }
+    
+    public static void anyRole(String... roles) {
+        if (!Auth.user().hasAnyRole(roles)) {
+            throw new AccessDeniedException("One of roles required: " + Arrays.toString(roles));
+        }
+    }
+    
+    public static void owner(String resourceOwnerId) {
+        if (Auth.isAdmin()) return; // Admin bypass
+        if (!Auth.id().equals(resourceOwnerId)) {
+            throw new AccessDeniedException("You can only access your own resources");
+        }
+    }
+    
+    public static GuardBuilder check() {
+        return new GuardBuilder();
+    }
+}
+```
+
+**Quando usar Facades vs Anotações**:
+
+| Caso de Uso | Abordagem |
+|-------------|-----------|
+| Proteção simples de endpoint | Anotação (`@Admin`, `@LazySecured`) |
+| Lógica condicional de autorização | `Guard` facade |
+| Acesso a dados do usuário em service | `Auth` facade |
+| Validação de ownership em método | `@Owner` ou `Guard.owner()` |
+
+---
+
+### 7. Exceções (`ao.sudojed.lss.exception`)
 
 Hierarquia de exceções:
 
@@ -409,7 +533,7 @@ public class LazySecurityControllerAdvice {
 
 ---
 
-### 7. Auto-Configuração (`ao.sudojed.lss.config`)
+### 8. Auto-Configuração (`ao.sudojed.lss.config`)
 
 #### `LazySecurityAutoConfiguration`
 Configura todo o framework.
@@ -621,6 +745,122 @@ class SecurityTest {
 }
 ```
 
+### Demo Application Tests
+
+O projeto inclui uma demo application completa com **73 testes** que demonstram todas as funcionalidades do LSS:
+
+| Classe de Teste | Qtd | Cobertura |
+|-----------------|-----|-----------|
+| `AuthControllerTest` | 10 | Register, Login, Refresh tokens, Error cases |
+| `ProfileControllerTest` | 9 | Profile CRUD, LazyUser injection, Auth facade |
+| `AdminControllerTest` | 20 | @Admin, role checks, user management, dashboard |
+| `OrderControllerTest` | 15 | @Owner, @anyRole, CRUD, authorization |
+| `SimpleAuthControllerTest` | 5 | Public endpoints, annotation variants |
+| `UserServiceTest` | 14 | Service layer, password hashing, role management |
+
+Executar os testes:
+
+```bash
+# Todos os testes
+./mvnw test
+
+# Apenas testes da demo
+./mvnw test -Dtest="ao.sudojed.lss.demo.**"
+
+# Testes específicos
+./mvnw test -Dtest="AdminControllerTest"
+```
+
+---
+
+## Demo Application
+
+A demo em `ao.sudojed.lss.demo` demonstra casos de uso reais do LSS.
+
+### Estrutura
+
+```
+demo/
+├── DemoApplication.java      # Main class com @EnableLazySecurity
+├── controller/
+│   ├── AuthController.java   # @Login, @Register, @RefreshToken
+│   ├── ProfileController.java # LazyUser injection, Auth facade
+│   ├── AdminController.java  # @Admin, @LazySecured(anyRole)
+│   ├── OrderController.java  # @Owner, resource-level security
+│   └── SimpleAuthController.java # Simplified annotations
+├── service/
+│   └── UserService.java      # In-memory user storage, Auth.hashPassword()
+├── model/
+│   ├── User.java             # User entity
+│   └── Order.java            # Order entity
+└── dto/
+    └── ...                   # DTOs para request/response
+```
+
+### Fluxo de Autenticação
+
+```
+1. POST /auth/register
+   └── Cria usuário com senha hasheada (Auth.hashPassword)
+   
+2. POST /auth/login
+   └── Valida credenciais, gera TokenPair (access + refresh)
+   
+3. GET /api/profile (com Bearer token)
+   └── LazyJwtFilter valida token
+   └── LazySecurityContext.setCurrentUser()
+   └── Controller recebe LazyUser ou usa Auth facade
+   
+4. POST /auth/refresh
+   └── JwtService.refresh() gera novo TokenPair
+```
+
+### Exemplos de Uso
+
+**Controller com LazyUser injetado:**
+```java
+@GetMapping("/profile")
+@Authenticated
+public Map<String, Object> getProfile(LazyUser user) {
+    return Map.of(
+        "id", user.getId(),
+        "username", user.getUsername(),
+        "roles", user.getRoles()
+    );
+}
+```
+
+**Controller com Auth facade:**
+```java
+@GetMapping("/me")
+@Authenticated
+public Map<String, Object> me() {
+    return Map.of(
+        "id", Auth.id(),
+        "username", Auth.username(),
+        "isAdmin", Auth.isAdmin()
+    );
+}
+```
+
+**Proteção por role:**
+```java
+@GetMapping("/users")
+@Admin  // Apenas ADMIN
+public List<User> listUsers() { ... }
+
+@GetMapping("/reports")
+@LazySecured(anyRole = {"ADMIN", "MANAGER"})  // ADMIN ou MANAGER
+public Map<String, Object> reports() { ... }
+```
+
+**Proteção por ownership:**
+```java
+@GetMapping("/users/{userId}/orders")
+@Owner(field = "userId")  // Usuário só acessa próprios recursos (admin bypass)
+public List<Order> getUserOrders(@PathVariable String userId) { ... }
+```
+
 ---
 
 ## Configuração de Produção
@@ -662,6 +902,9 @@ ao.sudojed.lss/
 │   ├── Admin.java
 │   ├── Authenticated.java
 │   ├── Owner.java
+│   ├── Login.java
+│   ├── Register.java
+│   ├── RefreshToken.java
 │   └── RateLimit.java
 ├── core/                 # Classes principais
 │   ├── LazyUser.java
@@ -678,6 +921,9 @@ ao.sudojed.lss/
 ├── aspect/               # Aspectos AOP
 │   ├── LazySecurityAspect.java
 │   └── RateLimitAspect.java
+├── facade/               # Facades estáticas
+│   ├── Auth.java         # Acesso ao usuário autenticado
+│   └── Guard.java        # Verificações imperativas de autorização
 ├── exception/            # Exceções e handlers
 │   ├── LazySecurityException.java
 │   ├── UnauthorizedException.java
@@ -689,9 +935,27 @@ ao.sudojed.lss/
 │   └── LazySecurityAutoConfiguration.java
 ├── resolver/             # Argument resolvers
 │   └── LazyUserArgumentResolver.java
-└── util/                 # Utilitários
-    ├── LazyAuth.java
-    └── PasswordUtils.java
+├── util/                 # Utilitários
+│   ├── LazyAuth.java
+│   └── PasswordUtils.java
+└── demo/                 # Aplicação de demonstração
+    ├── DemoApplication.java
+    ├── controller/
+    │   ├── AuthController.java
+    │   ├── ProfileController.java
+    │   ├── AdminController.java
+    │   ├── OrderController.java
+    │   └── SimpleAuthController.java
+    ├── service/
+    │   └── UserService.java
+    ├── model/
+    │   ├── User.java
+    │   └── Order.java
+    └── dto/
+        ├── LoginRequest.java
+        ├── RegisterRequest.java
+        ├── CreateOrderRequest.java
+        └── UpdateProfileRequest.java
 ```
 
 ---
@@ -738,3 +1002,22 @@ Desenvolvido por **Abner Lourenço _also known as_ Jed**.
 Versão: 1.0.0-SNAPSHOT  
 Java: 21+  
 Spring Boot: 3.4+
+
+---
+
+## Changelog
+
+### v1.0.0-SNAPSHOT (Atual)
+
+**Funcionalidades:**
+- Anotações declarativas: `@LazySecured`, `@Admin`, `@Authenticated`, `@Owner`, `@Public`
+- Anotações de autenticação: `@Login`, `@Register`, `@RefreshToken`
+- JWT com access + refresh tokens (HS384)
+- Facades: `Auth` e `Guard` para acesso imperativo
+- `LazyUser` injetável em controllers
+- Rate limiting via `@RateLimit`
+- Auto-configuração via `@EnableLazySecurity`
+- Demo application com 73 testes
+
+**Bug Fixes:**
+- `JwtService.refresh()` corrigido para usar `jwtProvider.refreshToken()` em vez de `validateToken()` (que rejeitava refresh tokens)

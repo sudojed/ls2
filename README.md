@@ -407,6 +407,8 @@ public void someMethod() {
 
 ## Configuration Properties
 
+> ⚠️ **Important:** JWT expiration values should be in **milliseconds** when using programmatic configuration, or use the time format (e.g., `24h`, `7d`) in YAML.
+
 ```yaml
 lazy-security:
   enabled: true              # Enable/disable LSS
@@ -421,9 +423,9 @@ lazy-security:
   jwt:
     enabled: true
     secret: ${JWT_SECRET}    # Required for production
-    expiration: 24h
+    expiration: 24h          # Access token expiration (supports: 1h, 24h, 7d, or ms)
     refresh-enabled: true
-    refresh-expiration: 7d
+    refresh-expiration: 7d   # Refresh token expiration
     issuer: my-app
     header: Authorization
     prefix: "Bearer "
@@ -504,6 +506,135 @@ public class MyApp { }
 ## License
 
 MIT License - see [LICENSE](LICENSE) for details.
+
+---
+
+## Demo Application
+
+The project includes a complete demo application in `ao.sudojed.lss.demo` that demonstrates all LSS features:
+
+### Running the Demo
+
+```bash
+./mvnw spring-boot:run -Dspring-boot.run.main-class=ao.sudojed.lss.demo.DemoApplication
+```
+
+### Demo Users
+
+| Username | Password | Roles |
+|----------|----------|-------|
+| admin    | admin123 | USER, ADMIN |
+| john     | 123456   | USER |
+| jane     | 123456   | USER, MANAGER |
+
+### Demo Endpoints
+
+**Public Endpoints:**
+- `GET /auth/health` - Health check
+- `POST /auth/register` - Register new user
+- `POST /auth/login` - Login and get JWT tokens
+- `POST /auth/refresh` - Refresh access token
+
+**Authenticated Endpoints:**
+- `GET /api/profile` - Get user profile (uses LazyUser injection)
+- `GET /api/me` - Get user info (uses Auth facade)
+- `PUT /api/profile` - Update profile
+- `GET /api/orders` - List user orders
+- `POST /api/orders` - Create order
+
+**Admin Endpoints:**
+- `GET /api/admin/users` - List all users
+- `GET /api/admin/dashboard` - Admin dashboard
+- `GET /api/admin/reports` - Reports (ADMIN or MANAGER)
+
+**Owner-Protected Endpoints:**
+- `GET /api/users/{userId}/orders` - User orders (owner or admin)
+
+### Test Coverage
+
+The demo includes **73 tests** covering:
+- AuthController (10 tests)
+- ProfileController (9 tests)
+- AdminController (20 tests)
+- OrderController (15 tests)
+- SimpleAuthController (5 tests)
+- UserService (14 tests)
+
+Run the demo tests:
+```bash
+./mvnw test -Dtest="ao.sudojed.lss.demo.**"
+```
+
+---
+
+## Auth & Guard Facades
+
+LSS provides two powerful facades for accessing security context without parameter injection.
+
+### Auth Facade
+
+Static access to the current authenticated user:
+
+```java
+import ao.sudojed.lss.facade.Auth;
+
+@GetMapping("/me")
+public Map<String, Object> getCurrentUser() {
+    return Map.of(
+        "id", Auth.id(),
+        "username", Auth.username(),
+        "email", Auth.claim("email"),
+        "roles", Auth.user().getRoles(),
+        "isAdmin", Auth.isAdmin(),
+        "isGuest", Auth.guest()
+    );
+}
+
+// Password hashing
+String hash = Auth.hashPassword("plainPassword");
+boolean valid = Auth.checkPassword("plainPassword", hash);
+```
+
+### Guard Facade
+
+Imperative authorization checks:
+
+```java
+import ao.sudojed.lss.facade.Guard;
+
+@GetMapping("/admin/dashboard")
+public Map<String, Object> dashboard() {
+    // Throws AccessDeniedException if not admin
+    Guard.admin();
+    
+    return Map.of("stats", getStats());
+}
+
+@DeleteMapping("/users/{userId}")
+public void deleteUser(@PathVariable String userId) {
+    // Require ADMIN role
+    Guard.role("ADMIN");
+    
+    // Or require any of these roles
+    Guard.anyRole("ADMIN", "MODERATOR");
+    
+    // Check resource ownership (admin can bypass)
+    Guard.owner(userId);
+    
+    userService.delete(userId);
+}
+
+// Fluent API
+@GetMapping("/sensitive")
+public Data sensitiveData() {
+    Guard.check()
+        .role("ADMIN")
+        .permission("data:read")
+        .authorize();
+    
+    return dataService.getSensitiveData();
+}
+```
 
 ---
 
