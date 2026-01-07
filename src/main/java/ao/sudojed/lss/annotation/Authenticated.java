@@ -8,20 +8,28 @@ import java.lang.annotation.Target;
 
 /**
  * Requires basic authentication (any authenticated user).
- * Convenient shortcut for {@code @LazySecured()}.
- * 
- * <h2>Usage</h2>
+ *
+ * @deprecated Use {@link Secured} instead. This annotation will be removed in a future version.
+ *
+ * <h2>Migration Guide</h2>
  * <pre>{@code
+ * // Before (deprecated)
  * @Authenticated
+ * @GetMapping("/profile")
+ * public User getProfile() { }
+ *
+ * // After (recommended)
+ * @Secured
  * @GetMapping("/profile")
  * public User getProfile() { }
  * }</pre>
  *
  * @author Sudojed Team
+ * @see Secured
  */
-@Target({ElementType.METHOD, ElementType.TYPE})
+@Target({ ElementType.METHOD, ElementType.TYPE })
 @Retention(RetentionPolicy.RUNTIME)
 @Documented
-@LazySecured
-public @interface Authenticated {
-}
+@Deprecated(since = "1.1.0", forRemoval = true)
+@Secured
+public @interface Authenticated {}

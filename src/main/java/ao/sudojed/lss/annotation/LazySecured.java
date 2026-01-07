@@ -8,84 +8,87 @@ import java.lang.annotation.Target;
 
 /**
  * Protects an endpoint/method requiring authentication and specific roles.
- * 
- * <h2>Simple Authentication (any authenticated user)</h2>
+ *
+ * @deprecated Use {@link Secured} instead. This annotation will be removed in a future version.
+ *
+ * <h2>Migration Guide</h2>
  * <pre>{@code
+ * // Before (deprecated)
  * @LazySecured
- * @GetMapping("/profile")
- * public User getProfile() { }
- * }</pre>
- * 
- * <h2>Specific Roles</h2>
- * <pre>{@code
  * @LazySecured(roles = "ADMIN")
- * @DeleteMapping("/users/{id}")
- * public void deleteUser(@PathVariable Long id) { }
- * 
- * @LazySecured(roles = {"ADMIN", "MANAGER"})
- * @GetMapping("/reports")
- * public List<Report> getReports() { }
- * }</pre>
- * 
- * <h2>Role Logic</h2>
- * <pre>{@code
- * // Any of the roles (OR)
  * @LazySecured(roles = {"ADMIN", "MANAGER"}, logic = RoleLogic.ANY)
- * 
- * // All roles required (AND)
  * @LazySecured(roles = {"VERIFIED", "PREMIUM"}, logic = RoleLogic.ALL)
- * }</pre>
- * 
- * <h2>Combined with Permissions</h2>
- * <pre>{@code
- * @LazySecured(
- *     roles = "USER",
- *     permissions = "users:read"
- * )
+ *
+ * // After (recommended)
+ * @Secured
+ * @Secured("ADMIN")
+ * @Secured({"ADMIN", "MANAGER"})
+ * @Secured(value = {"VERIFIED", "PREMIUM"}, all = true)
  * }</pre>
  *
  * @author Sudojed Team
+ * @see Secured
  */
-@Target({ElementType.METHOD, ElementType.TYPE})
+@Target({ ElementType.METHOD, ElementType.TYPE })
 @Retention(RetentionPolicy.RUNTIME)
 @Documented
+@Deprecated(since = "1.1.0", forRemoval = true)
 public @interface LazySecured {
-
     /**
      * Roles allowed to access the resource.
      * If empty, only authentication is required.
+     *
+     * @deprecated Use {@link Secured#value()} or {@link Secured#roles()} instead.
      */
+    @Deprecated
     String[] roles() default {};
 
     /**
      * Specific permissions required (fine-grained).
      * Example: "users:read", "posts:write"
+     *
+     * @deprecated Use {@link Secured#permissions()} instead.
      */
+    @Deprecated
     String[] permissions() default {};
 
     /**
      * Logic for multiple roles.
+     *
+     * @deprecated Use {@link Secured#all()} instead.
+     * {@code RoleLogic.ANY} = {@code all = false},
+     * {@code RoleLogic.ALL} = {@code all = true}
      */
+    @Deprecated
     RoleLogic logic() default RoleLogic.ANY;
 
     /**
      * Custom error message when access is denied.
+     *
+     * @deprecated Use {@link Secured#message()} instead.
      */
+    @Deprecated
     String message() default "Access denied";
 
     /**
      * SpEL expression for dynamic validation.
      * Example: "#userId == authentication.principal.id"
+     *
+     * @deprecated Use {@link Secured#condition()} instead.
      */
+    @Deprecated
     String condition() default "";
-    
+
     /**
      * Role evaluation logic.
+     *
+     * @deprecated Use {@link Secured#all()} instead.
      */
+    @Deprecated
     enum RoleLogic {
-        /** Any of the roles is sufficient (OR) */
+        /** Any of the roles is sufficient (OR) - equivalent to {@code @Secured(all = false)} */
         ANY,
-        /** All roles are required (AND) */
-        ALL
+        /** All roles are required (AND) - equivalent to {@code @Secured(all = true)} */
+        ALL,
     }
 }
