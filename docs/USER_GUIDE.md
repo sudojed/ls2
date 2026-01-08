@@ -1,90 +1,65 @@
-# LazySpringSecurity - User Guide
+# LazySpringSecurity (LSS) - User Guide
 
-> **Complete guide to using LazySpringSecurity (LSS) - A lightweight, annotation-driven security framework for Spring Boot.**
-
----
+> **Complete guide for developers using LazySpringSecurity in production applications**
 
 ## Table of Contents
 
-1. [Getting Started](#getting-started)
-   - [Installation](#installation)
-   - [Quick Start](#quick-start)
-   - [Minimal Configuration](#minimal-configuration)
+1. [Quick Start](#quick-start)
 2. [Configuration](#configuration)
-   - [@EnableLazySecurity Options](#enablelazysecurity-options)
-   - [@JwtConfig Options](#jwtconfig-options)
-   - [application.yml Properties](#applicationyml-properties)
-   - [Environment Variables](#environment-variables)
-3. [Annotations Reference](#annotations-reference)
-   - [@Secured](#secured)
-   - [@Public](#public)
-   - [@Owner](#owner)
-   - [@RateLimit](#ratelimit)
-   - [@Audit](#audit)
-   - [@Cached](#cached)
-   - [@Login, @Register, @RefreshToken](#login-register-refreshtoken)
-   - [@Authenticatable](#authenticatable)
-4. [Facades Reference](#facades-reference)
-   - [Auth Facade](#auth-facade)
-   - [Guard Facade](#guard-facade)
-5. [Advanced Topics](#advanced-topics)
-   - [Custom JWT Provider](#custom-jwt-provider)
-   - [Token Revocation](#token-revocation)
-   - [SpEL Conditions](#spel-conditions)
-   - [Annotation Inheritance](#annotation-inheritance)
-   - [Error Handling](#error-handling)
-6. [Examples](#examples)
-   - [REST API with JWT](#rest-api-with-jwt)
-   - [Role-Based Access Control](#role-based-access-control)
-   - [Resource Ownership](#resource-ownership)
-   - [Rate Limiting](#rate-limiting)
-7. [Migration Guide](#migration-guide)
-   - [From Spring Security](#from-spring-security)
-   - [From Deprecated Annotations](#from-deprecated-annotations)
-8. [Troubleshooting](#troubleshooting)
-   - [Common Issues](#common-issues)
-   - [Debug Mode](#debug-mode)
-   - [Logging Configuration](#logging-configuration)
+3. [Security Annotations](#security-annotations)
+4. [Authentication](#authentication)
+5. [Authorization](#authorization)
+6. [JWT Management](#jwt-management)
+7. [Advanced Features](#advanced-features)
+8. [Best Practices](#best-practices)
+9. [Troubleshooting](#troubleshooting)
+10. [Migration Guide](#migration-guide)
 
----
+## Quick Start
 
-## Getting Started
+### 1. Add Dependency
 
-### Installation
-
-#### Maven
-
+**Maven:**
 ```xml
 <dependency>
     <groupId>ao.sudojed</groupId>
     <artifactId>lazy-spring-security</artifactId>
-    <version>1.1.0</version>
+    <version>1.0.0-SNAPSHOT</version>
 </dependency>
 ```
 
-#### Gradle
-
-```groovy
-implementation 'ao.sudojed:lazy-spring-security:1.1.0'
+**Gradle:**
+```gradle
+implementation 'ao.sudojed:lazy-spring-security:1.0.0-SNAPSHOT'
 ```
 
-### Quick Start
-
-1. **Enable LazySpringSecurity** in your main application class:
+### 2. Enable LazySpringSecurity
 
 ```java
-@EnableLazySecurity(
-    jwt = @JwtConfig(secret = "${JWT_SECRET}")
-)
 @SpringBootApplication
-public class MyApplication {
+@EnableLazySecurity
+public class Application {
     public static void main(String[] args) {
-        SpringApplication.run(MyApplication.class, args);
+        SpringApplication.run(Application.class, args);
     }
 }
 ```
 
-2. **Create your first protected endpoint**:
+### 3. Configure JWT Secret
+
+**application.properties:**
+```properties
+lazy-security.jwt.secret=your-very-secure-256-bit-secret-key-here-change-this-in-production
+```
+
+**application.yml:**
+```yaml
+lazy-security:
+  jwt:
+    secret: ${JWT_SECRET:your-very-secure-256-bit-secret-key-here-change-this-in-production}
+```
+
+### 4. Secure Your Endpoints
 
 ```java
 @RestController
@@ -93,228 +68,204 @@ public class UserController {
 
     @Public
     @GetMapping("/health")
-    public Map<String, String> health() {
-        return Map.of("status", "UP");
+    public String health() {
+        return "OK";
     }
 
     @Secured
     @GetMapping("/profile")
-    public Map<String, Object> getProfile(LazyUser user) {
-        return Map.of(
-            "id", user.getId(),
-            "username", user.getUsername(),
-            "roles", user.getRoles()
-        );
+    public User getProfile(LazyUser user) {
+        return userService.findById(user.getId());
     }
 
     @Secured("ADMIN")
     @DeleteMapping("/users/{id}")
     public void deleteUser(@PathVariable Long id) {
-        // Only admins can delete users
+        userService.delete(id);
     }
 }
 ```
 
-3. **Set your JWT secret** in environment or application.yml:
-
-```yaml
-# application.yml
-JWT_SECRET: your-256-bit-secret-key-at-least-32-characters
-```
-
-### Minimal Configuration
-
-The absolute minimum configuration is:
-
-```java
-@EnableLazySecurity
-@SpringBootApplication
-public class MyApplication { }
-```
-
-With `application.yml`:
-
-```yaml
-lazy-security:
-  jwt:
-    secret: ${JWT_SECRET:default-dev-secret-change-in-production}
-```
-
----
+That's it! Your application is now secured with JWT authentication and role-based authorization.
 
 ## Configuration
 
-### @EnableLazySecurity Options
+### Basic Configuration
 
-| Attribute | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `jwt` | @JwtConfig | - | JWT configuration |
-| `publicPaths` | String[] | {} | Paths that don't require authentication |
-| `defaultRole` | String | "USER" | Default role for authenticated users |
-| `csrfEnabled` | boolean | false | Enable CSRF protection |
-| `corsEnabled` | boolean | true | Enable CORS |
-| `corsOrigins` | String[] | {"*"} | Allowed CORS origins |
-| `corsMethods` | String[] | GET, POST, PUT, DELETE, PATCH, OPTIONS | Allowed HTTP methods |
-| `corsHeaders` | String[] | {"*"} | Allowed headers |
-| `securePaths` | String[] | {} | Paths that require HTTPS |
-| `debug` | boolean | false | Enable debug logging |
+**Minimal Configuration (application.properties):**
+```properties
+# JWT Secret (REQUIRED) - Must be at least 32 characters
+lazy-security.jwt.secret=your-very-secure-256-bit-secret-key-here-change-this-in-production
 
-**Example:**
+# Public endpoints (optional)
+lazy-security.public-paths[0]=/auth/**
+lazy-security.public-paths[1]=/health
 
-```java
-@EnableLazySecurity(
-    jwt = @JwtConfig(
-        secret = "${JWT_SECRET}",
-        expiration = 3600000,  // 1 hour
-        refreshExpiration = 604800000  // 7 days
-    ),
-    publicPaths = {"/api/auth/**", "/health", "/swagger-ui/**"},
-    defaultRole = "USER",
-    csrfEnabled = false,
-    corsEnabled = true,
-    corsOrigins = {"http://localhost:3000", "https://myapp.com"},
-    debug = true
-)
-@SpringBootApplication
-public class MyApplication { }
+# CORS for frontend integration (optional)
+lazy-security.cors.enabled=true
+lazy-security.cors.allowed-origins[0]=http://localhost:3000
 ```
 
-### @JwtConfig Options
+### Complete Configuration
 
-| Attribute | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `secret` | String | "" | Secret key for signing (min 32 chars for HS256) |
-| `expiration` | long | 3600000 | Access token expiration (ms) - 1 hour |
-| `refreshExpiration` | long | 604800000 | Refresh token expiration (ms) - 7 days |
-| `header` | String | "Authorization" | HTTP header name |
-| `prefix` | String | "Bearer " | Token prefix in header |
-| `issuer` | String | "lazy-spring-security" | JWT issuer claim |
-| `audience` | String | "" | JWT audience claim |
-| `algorithm` | String | "HS256" | Signing algorithm |
-
-### application.yml Properties
-
+**application.yml:**
 ```yaml
 lazy-security:
+  # Framework settings
   enabled: true
   debug: false
   default-role: USER
-  
+  default-mode: authenticated
+
+  # Public endpoints (no authentication required)
   public-paths:
-    - /api/public/**
+    - /auth/**
     - /health
-    - /actuator/**
-  
+    - /actuator/health
+    - /docs/**
+    - /error
+
+  # JWT Configuration
   jwt:
-    enabled: true
-    secret: ${JWT_SECRET}
-    expiration: 3600000      # 1 hour in milliseconds
-    refresh-expiration: 604800000  # 7 days
+    secret: ${JWT_SECRET:your-secret-key}
+    expiration: 24h
+    refresh-expiration: 7d
+    refresh-enabled: true
     issuer: my-app
     header: Authorization
     prefix: "Bearer "
-  
+
+  # CORS Configuration
   cors:
     enabled: true
     allowed-origins:
       - http://localhost:3000
-      - https://myapp.com
+      - https://yourdomain.com
     allowed-methods:
       - GET
       - POST
       - PUT
       - DELETE
+      - OPTIONS
     allowed-headers:
       - "*"
     allow-credentials: true
     max-age: 3600
-  
+
+  # CSRF (typically disabled for REST APIs)
   csrf:
     enabled: false
 ```
 
-### Environment Variables
+### Environment-based Configuration
 
-| Variable | Description |
-|----------|-------------|
-| `JWT_SECRET` | JWT signing secret (required in production) |
-| `LSS_DEBUG` | Enable debug mode (true/false) |
-| `LSS_PUBLIC_PATHS` | Comma-separated public paths |
+**Production application.yml:**
+```yaml
+lazy-security:
+  debug: false
+  jwt:
+    secret: ${JWT_SECRET}  # Required environment variable
+    expiration: 1h         # Shorter for better security
+    refresh-expiration: 24h
+  cors:
+    allowed-origins:
+      - https://${FRONTEND_DOMAIN}
+      - https://www.${FRONTEND_DOMAIN}
 
----
+# Required environment variables:
+# JWT_SECRET=your-production-secret-key
+# FRONTEND_DOMAIN=yourdomain.com
+```
 
-## Annotations Reference
+## Security Annotations
 
-### @Secured
+### @Secured - Unified Authorization
 
-The unified security annotation for authentication and authorization.
+The `@Secured` annotation is the cornerstone of LazySpringSecurity authorization.
 
-**Usage Patterns:**
-
+#### Basic Authentication (Any Authenticated User)
 ```java
-// Any authenticated user
 @Secured
 @GetMapping("/profile")
-public User getProfile() { }
+public User getProfile() {
+    return userService.getCurrentUser();
+}
+```
 
-// Single role required
+#### Single Role Requirement
+```java
 @Secured("ADMIN")
 @DeleteMapping("/users/{id}")
-public void deleteUser(@PathVariable Long id) { }
+public void deleteUser(@PathVariable Long id) {
+    userService.delete(id);
+}
+```
 
-// Multiple roles (any of them - OR logic)
+#### Multiple Roles (OR Logic - Default)
+```java
 @Secured({"ADMIN", "MANAGER"})
 @GetMapping("/reports")
-public List<Report> getReports() { }
+public List<Report> getReports() {
+    return reportService.generateReports();
+}
+```
 
-// All roles required (AND logic)
+#### Multiple Roles (AND Logic)
+```java
 @Secured(value = {"VERIFIED", "PREMIUM"}, all = true)
-@GetMapping("/premium-content")
-public Content getPremiumContent() { }
+@GetMapping("/exclusive-content")
+public Content getExclusiveContent() {
+    return contentService.getPremiumContent();
+}
+```
 
-// With permissions
-@Secured(permissions = "users:read")
-@GetMapping("/users")
-public List<User> listUsers() { }
+#### Permission-Based Authorization
+```java
+@Secured(permissions = {"users:write", "admin:manage"})
+@PostMapping("/users")
+public User createUser(@RequestBody CreateUserRequest request) {
+    return userService.create(request);
+}
+```
 
-// Combine roles and permissions
-@Secured(roles = "USER", permissions = "posts:write")
-@PostMapping("/posts")
-public Post createPost(@RequestBody Post post) { }
+#### SpEL Conditions
+```java
+@Secured(condition = "#userId == principal.id or hasRole('ADMIN')")
+@GetMapping("/users/{userId}/orders")
+public List<Order> getUserOrders(@PathVariable String userId) {
+    return orderService.findByUserId(userId);
+}
+```
 
-// With SpEL condition
-@Secured(condition = "#userId == #principal.id")
-@GetMapping("/users/{userId}/settings")
-public Settings getSettings(@PathVariable String userId) { }
+#### Custom Error Messages
+```java
+@Secured(value = "ADMIN", message = "Administrator access required for user management")
+@PostMapping("/users/{id}/roles")
+public void addRole(@PathVariable String id, @RequestBody AddRoleRequest request) {
+    userService.addRole(id, request.getRole());
+}
+```
 
-// Custom error message
-@Secured(value = "ADMIN", message = "Only administrators can access this")
-@GetMapping("/admin/config")
-public Config getConfig() { }
-
-// Class-level (applies to all methods)
+#### Class-Level Security
+```java
 @Secured("ADMIN")
 @RestController
 @RequestMapping("/api/admin")
 public class AdminController {
-    // All endpoints require ADMIN role
+    // All endpoints require ADMIN role by default
+    
+    @GetMapping("/users")
+    public List<User> getUsers() { }
+    
+    @Secured({"ADMIN", "MANAGER"}) // Override class-level requirement
+    @GetMapping("/reports")
+    public List<Report> getReports() { }
 }
 ```
 
-**Attributes:**
+### @Public - Public Access
 
-| Attribute | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `value` | String[] | {} | Roles (shorthand) |
-| `roles` | String[] | {} | Roles (alias for value) |
-| `permissions` | String[] | {} | Required permissions |
-| `all` | boolean | false | Require ALL roles (AND vs OR) |
-| `message` | String | "Access denied" | Error message |
-| `condition` | String | "" | SpEL expression |
-
-### @Public
-
-Marks an endpoint as publicly accessible.
+Marks endpoints as publicly accessible (no authentication required).
 
 ```java
 @Public
@@ -324,803 +275,1055 @@ public String health() {
 }
 
 @Public
-@PostMapping("/auth/login")
-public TokenResponse login(@RequestBody LoginRequest request) { }
+@GetMapping("/docs")
+public String documentation() {
+    return "API Documentation";
+}
 ```
 
-### @Owner
+### @Owner - Resource Ownership
 
-Validates resource ownership.
+Validates that the current user owns the resource being accessed.
 
+#### Basic Ownership Check
 ```java
-// Basic - check path variable
-@Secured
 @Owner(field = "userId")
-@GetMapping("/users/{userId}/orders")
-public List<Order> getOrders(@PathVariable String userId) { }
+@GetMapping("/users/{userId}/profile")
+public UserProfile getUserProfile(@PathVariable String userId) {
+    return userService.getProfile(userId);
+}
+```
 
-// With admin bypass
-@Secured
-@Owner(field = "userId", adminBypass = true)
+#### Custom Bypass Roles
+```java
+@Owner(field = "userId", bypassRoles = {"ADMIN", "SUPPORT"})
 @PutMapping("/users/{userId}")
-public User updateUser(@PathVariable String userId, @RequestBody User user) { }
+public User updateUser(@PathVariable String userId, @RequestBody UpdateUserRequest request) {
+    return userService.update(userId, request);
+}
+```
 
-// Check request body
-@Secured
+#### Request Body Field Validation
+```java
 @Owner(requestField = "authorId")
 @PostMapping("/posts")
-public Post createPost(@RequestBody Post post) { }
-
-// Custom bypass roles
-@Secured
-@Owner(field = "userId", bypassRoles = {"ADMIN", "SUPPORT"})
-@GetMapping("/users/{userId}/tickets")
-public List<Ticket> getTickets(@PathVariable String userId) { }
+public Post createPost(@RequestBody CreatePostRequest request) {
+    // Validates that request.authorId == currentUser.id
+    return postService.create(request);
+}
 ```
 
-**Attributes:**
+### @RateLimit - Request Throttling
 
-| Attribute | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `field` | String | "" | Path variable/param to check |
-| `requestField` | String | "" | Request body field to check |
-| `entityField` | String | "" | Response entity field to check |
-| `principalField` | String | "id" | User field for comparison |
-| `bypassRoles` | String[] | {"ADMIN"} | Roles that bypass check |
-| `adminBypass` | boolean | true | Allow ADMIN to bypass |
-| `allowNullOwner` | boolean | false | Allow null owner IDs |
-| `message` | String | "You can only access your own resources" | Error message |
+Protects endpoints from abuse and DDoS attacks.
 
-### @RateLimit
-
-Applies rate limiting to endpoints.
-
+#### Basic Rate Limiting
 ```java
-// 100 requests per minute
-@RateLimit(requests = 100, window = 60)
-@GetMapping("/api/data")
-public Data getData() { }
+@RateLimit(requests = 100, window = 60) // 100 requests per minute
+@PostMapping("/api/data")
+public Response processData(@RequestBody DataRequest request) {
+    return dataService.process(request);
+}
+```
 
-// Per user limiting
+#### Per-User Rate Limiting
+```java
 @RateLimit(requests = 10, window = 60, perUser = true)
 @PostMapping("/messages")
-public Message sendMessage(@RequestBody Message message) { }
-
-// Login endpoint - strict limiting
-@RateLimit(requests = 5, window = 300, key = "ip")
-@PostMapping("/login")
-public Token login(@RequestBody LoginRequest request) { }
+public Message sendMessage(@RequestBody MessageRequest request) {
+    return messageService.send(request);
+}
 ```
 
-**Attributes:**
-
-| Attribute | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `requests` | int | - | Max requests in window |
-| `window` | int | - | Time window in seconds |
-| `key` | String | "ip" | Rate limit key (ip, user, token) |
-| `perUser` | boolean | false | Limit per authenticated user |
-| `message` | String | "Rate limit exceeded..." | Error message |
-| `statusCode` | int | 429 | HTTP status when exceeded |
-
-### @Audit
-
-Logs security events automatically.
-
+#### Login Protection
 ```java
-// Basic audit
+@RateLimit(requests = 5, window = 300, key = "ip") // 5 attempts per 5 min per IP
+@PostMapping("/login")
+public TokenResponse login(@RequestBody LoginRequest request) {
+    return authService.authenticate(request);
+}
+```
+
+### @Audit - Security Event Logging
+
+Automatically logs security-related events for compliance and monitoring.
+
+#### Basic Audit Logging
+```java
 @Audit
 @Secured("ADMIN")
 @DeleteMapping("/users/{id}")
-public void deleteUser(@PathVariable Long id) { }
-
-// With custom action name
-@Audit(action = "USER_DELETE")
-@Secured("ADMIN")
-@DeleteMapping("/users/{id}")
-public void deleteUser(@PathVariable Long id) { }
-
-// Sensitive operation
-@Audit(level = AuditLevel.SENSITIVE)
-@Secured("ADMIN")
-@PutMapping("/users/{id}/password")
-public void resetPassword(@PathVariable Long id) { }
-
-// Include parameters (exclude sensitive ones)
-@Audit(includeParams = true, excludeParams = {"password", "token"})
-@PostMapping("/login")
-public Token login(@RequestBody LoginRequest request) { }
+public void deleteUser(@PathVariable Long id) {
+    userService.delete(id);
+}
 ```
 
-**Attributes:**
-
-| Attribute | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `action` | String | "" | Custom action name |
-| `level` | AuditLevel | NORMAL | Sensitivity level |
-| `includeParams` | boolean | false | Log parameters |
-| `excludeParams` | String[] | password, secret, token... | Params to exclude |
-| `includeResponse` | boolean | false | Log response |
-| `onlyOnSuccess` | boolean | false | Only log successful calls |
-| `category` | String | "security" | Log category |
-
-### @Cached
-
-Security-aware response caching.
-
+#### Custom Audit Configuration
 ```java
-// Cache per user for 60 seconds
-@Cached(ttl = 60)
+@Audit(
+    action = "PASSWORD_RESET",
+    level = AuditLevel.SENSITIVE,
+    includeParams = true,
+    excludeParams = {"password", "newPassword"}
+)
+@PostMapping("/users/{id}/reset-password")
+public void resetPassword(@PathVariable Long id, @RequestBody PasswordResetRequest request) {
+    userService.resetPassword(id, request);
+}
+```
+
+### @Cached - Security-Aware Caching
+
+Provides security-aware response caching that respects user context.
+
+#### Per-User Caching
+```java
+@Cached(ttl = 300) // Cache for 5 minutes per user
 @Secured
 @GetMapping("/profile")
-public User getProfile() { }
-
-// Global cache (public data)
-@Cached(ttl = 300, perUser = false)
-@Public
-@GetMapping("/products")
-public List<Product> getProducts() { }
-
-// Cache per role
-@Cached(ttl = 120, perRole = true)
-@Secured({"ADMIN", "MANAGER"})
-@GetMapping("/reports")
-public List<Report> getReports() { }
-
-// Conditional caching
-@Cached(ttl = 60, condition = "#result != null")
-@Secured
-@GetMapping("/data")
-public Data getData() { }
+public UserProfile getProfile() {
+    return userService.getCurrentProfile();
+}
 ```
 
-**Attributes:**
+#### Global Caching for Public Data
+```java
+@Cached(ttl = 600, perUser = false) // Global cache for 10 minutes
+@Public
+@GetMapping("/products")
+public List<Product> getProducts() {
+    return productService.findAll();
+}
+```
 
-| Attribute | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `ttl` | int | 60 | Time-to-live in seconds |
-| `enabled` | boolean | true | Enable caching |
-| `perUser` | boolean | true | Cache per user |
-| `perRole` | boolean | false | Cache per role |
-| `key` | String | "" | Custom cache key |
-| `condition` | String | "" | SpEL cache condition |
-| `unless` | String | "" | SpEL unless condition |
+#### Role-Based Caching
+```java
+@Cached(ttl = 120, perRole = true) // Cache per role for 2 minutes
+@Secured({"ADMIN", "MANAGER"})
+@GetMapping("/reports")
+public List<Report> getReports() {
+    return reportService.generate();
+}
+```
 
-### @Login, @Register, @RefreshToken
+## Authentication
 
-Auto-generate authentication endpoints.
+### Authentication Endpoints
 
+LazySpringSecurity provides powerful annotations to create authentication endpoints with zero boilerplate.
+
+#### @Login - User Authentication
 ```java
 @RestController
 @RequestMapping("/auth")
 public class AuthController {
 
-    // Auto-generated login endpoint
-    @Login(
-        userService = UserService.class,
-        findMethod = "findByUsername",
-        claims = {"email", "displayName"}
-    )
+    @Login(userService = UserService.class)
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody LoginRequest request) {
-        return null; // Body is ignored
-    }
-
-    // Auto-generated registration endpoint
-    @Register(
-        userService = UserService.class,
-        createMethod = "createUser",
-        autoLogin = true
-    )
-    @PostMapping("/register")
-    public ResponseEntity<?> register(@RequestBody RegisterRequest request) {
-        return null; // Body is ignored
-    }
-
-    // Auto-generated token refresh endpoint
-    @RefreshToken
-    @PostMapping("/refresh")
-    public ResponseEntity<?> refresh(@RequestBody Map<String, String> request) {
-        return null; // Body is ignored
+    public TokenResponse login(@RequestBody LoginRequest request) {
+        // Implementation is handled automatically
+        // Validates credentials and returns JWT tokens
     }
 }
 ```
 
-### @Authenticatable
-
-Marks an entity as authenticatable.
-
+**Advanced Login Configuration:**
 ```java
-@Authenticatable(
-    usernameField = "email",
-    passwordField = "passwordHash",
-    rolesField = "roles",
-    idField = "id",
-    claimFields = {"displayName", "department"}
+@Login(
+    userService = UserService.class,
+    findMethod = "findByEmail",           // Custom user lookup method
+    usernameField = "email",              // Database field for username
+    passwordField = "passwordHash",       // Database field for password
+    rolesField = "authorities",           // Database field for roles
+    requestUsernameField = "email",       // Request JSON field for username
+    requestPasswordField = "password",    // Request JSON field for password
+    includeUserInfo = true,               // Include user details in response
+    claims = {"email", "firstName"},      // Additional JWT claims
+    invalidCredentialsMessage = "Invalid email or password"
 )
-@Entity
-public class User {
-    private Long id;
-    private String email;
-    private String passwordHash;
-    private Set<String> roles;
-    private String displayName;
-    private String department;
-    // getters...
+@PostMapping("/login")
+public TokenResponse login(@RequestBody LoginRequest request) { }
+```
+
+#### @Register - User Registration
+```java
+@Register(userService = UserService.class)
+@PostMapping("/register")
+public UserResponse register(@RequestBody RegisterRequest request) {
+    // Automatically creates user with validation
+    // Checks for existing users
+    // Returns user details (optionally with tokens if autoLogin=true)
 }
 ```
 
----
-
-## Facades Reference
-
-### Auth Facade
-
-Static access to authentication context from anywhere in your code.
-
+**Advanced Register Configuration:**
 ```java
-import ao.sudojed.lss.facade.Auth;
-
-// Check authentication
-if (Auth.check()) {
-    // User is authenticated
-}
-
-if (Auth.guest()) {
-    // User is NOT authenticated
-}
-
-// Get current user
-LazyUser user = Auth.user();
-String userId = Auth.id();
-String username = Auth.username();
-
-// Check roles
-if (Auth.hasRole("ADMIN")) { }
-if (Auth.hasAnyRole("ADMIN", "MANAGER")) { }
-if (Auth.hasAllRoles("VERIFIED", "PREMIUM")) { }
-if (Auth.isAdmin()) { }
-
-// Check permissions
-if (Auth.can("posts:write")) { }
-if (Auth.cannot("users:delete")) { }
-
-// Get claims
-Object email = Auth.claim("email");
-String dept = Auth.claim("department", "default");
-
-// Require authentication (throws if not)
-Auth.requireAuth();
-Auth.requireRole("ADMIN");
-
-// Login/Logout
-Auth.login(lazyUser);
-Auth.logout();
-
-// Token revocation
-Auth.revokeCurrentToken();
-Auth.revokeAllTokens();
-Auth.revokeTokensForUser("user-123");
-
-// Password utilities
-String hash = Auth.hashPassword("plainPassword");
-boolean valid = Auth.checkPassword("plainPassword", hash);
-
-// Execute as another user (testing)
-Auth.runAs(testUser, () -> {
-    // Code runs as testUser
-    return someResult;
-});
-
-// Conditional execution
-Auth.ifAuthenticated(user -> {
-    System.out.println("Hello, " + user.getUsername());
-});
-
-Auth.ifGuest(() -> {
-    System.out.println("Please log in");
-});
+@Register(
+    userService = UserService.class,
+    createMethod = "createUser",          // Custom user creation method
+    existsMethod = "findByEmail",         // Method to check existing users
+    requestFields = {"email", "password", "firstName"}, // Required fields
+    uniqueField = "email",                // Field that must be unique
+    autoLogin = true,                     // Automatically login after registration
+    existsMessage = "Email already in use",
+    responseFields = {"id", "email", "firstName"} // Fields in response
+)
+@PostMapping("/register")
+public UserResponse register(@RequestBody RegisterRequest request) { }
 ```
 
-### Guard Facade
-
-Imperative authorization checks.
-
+#### @RefreshToken - Token Refresh
 ```java
-import ao.sudojed.lss.facade.Guard;
-
-// Require authentication
-Guard.authenticated();
-
-// Require specific role
-Guard.role("ADMIN");
-
-// Require any of these roles
-Guard.anyRole("ADMIN", "MANAGER");
-
-// Require all roles
-Guard.allRoles("VERIFIED", "PREMIUM");
-
-// Require admin
-Guard.admin();
-
-// Require permission
-Guard.permission("users:delete");
-
-// Check ownership
-Guard.owner(resourceOwnerId);  // Admin auto-bypass
-
-// Fluent API
-Guard.check()
-    .authenticated()
-    .role("ADMIN")
-    .permission("users:manage")
-    .authorize();
-
-// Conditional authorization
-Guard.check()
-    .role("MANAGER")
-    .condition(() -> someBusinessLogic())
-    .authorize();
+@RefreshToken
+@PostMapping("/refresh")
+public TokenResponse refresh(@RequestBody RefreshTokenRequest request) {
+    // Automatically handles refresh token validation
+    // Generates new access token
+}
 ```
 
----
+### Manual JWT Operations
 
-## Advanced Topics
-
-### Custom JWT Provider
-
-Implement your own JWT provider:
+For custom authentication flows:
 
 ```java
-@Component
-public class CustomJwtProvider implements JwtProvider {
+@RestController
+public class CustomAuthController {
 
-    @Override
-    public String createAccessToken(LazyUser user) {
-        // Your implementation
-    }
+    @Autowired
+    private JwtService jwtService;
+    
+    @Autowired
+    private UserService userService;
 
-    @Override
-    public String createRefreshToken(LazyUser user) {
-        // Your implementation
-    }
+    @PostMapping("/custom-login")
+    public TokenResponse customLogin(@RequestBody LoginRequest request) {
+        // Custom validation logic
+        User user = userService.authenticate(request.getUsername(), request.getPassword());
+        
+        if (user == null) {
+            throw new UnauthorizedException("Invalid credentials");
+        }
 
-    @Override
-    public Optional<LazyUser> validateToken(String token) {
-        // Your implementation
-    }
+        // Create LazyUser
+        LazyUser lazyUser = LazyUser.builder()
+            .id(user.getId())
+            .username(user.getUsername())
+            .roles(user.getRoles())
+            .permissions(user.getPermissions())
+            .claim("email", user.getEmail())
+            .claim("department", user.getDepartment())
+            .build();
 
-    @Override
-    public Optional<LazyUser> refreshToken(String refreshToken) {
-        // Your implementation
+        // Generate tokens
+        TokenPair tokens = jwtService.createTokens(lazyUser);
+        
+        return new TokenResponse(
+            tokens.accessToken(),
+            tokens.refreshToken(),
+            "Bearer",
+            tokens.expiresIn()
+        );
     }
 }
 ```
 
-### Token Revocation
+## Authorization
 
-Enable token blacklisting for logout functionality:
+### Declarative Authorization (Annotations)
 
-```java
-@Configuration
-public class SecurityConfig {
-
-    @Bean
-    public TokenBlacklist tokenBlacklist() {
-        return new InMemoryTokenBlacklist();
-    }
-
-    @PostConstruct
-    public void configureAuth() {
-        Auth.setTokenBlacklist(tokenBlacklist());
-    }
-}
-
-// Usage
-@PostMapping("/logout")
-public ResponseEntity<?> logout() {
-    Auth.revokeCurrentToken();
-    return ResponseEntity.ok(Map.of("message", "Logged out"));
-}
-
-@PostMapping("/logout-all")
-public ResponseEntity<?> logoutAll() {
-    Auth.revokeAllTokens();
-    return ResponseEntity.ok(Map.of("message", "Logged out from all devices"));
-}
-```
-
-### SpEL Conditions
-
-Use Spring Expression Language in @Secured:
+Use annotations for method-level security:
 
 ```java
-// User can only access their own resources
-@Secured(condition = "#userId == #principal.id")
-@GetMapping("/users/{userId}/settings")
-public Settings getSettings(@PathVariable String userId) { }
-
-// Admin or owner
-@Secured(condition = "#principal.isAdmin() or #userId == #principal.id")
-@GetMapping("/users/{userId}/data")
-public Data getData(@PathVariable String userId) { }
-
-// Check claims
-@Secured(condition = "#principal.getClaim('level', 0) >= 5")
-@GetMapping("/advanced-features")
-public Features getAdvancedFeatures() { }
-
-// Complex conditions
-@Secured(condition = "#amount < 1000 or #principal.hasRole('MANAGER')")
-@PostMapping("/transfers")
-public Transfer createTransfer(@RequestParam Integer amount) { }
-```
-
-**Available SpEL Variables:**
-- `#principal` / `#user` - Current LazyUser
-- `#authentication` - Same as principal
-- `#paramName` - Method parameters by name
-- `#target` / `#this` - Controller instance
-- `#method` - Method object
-- `#methodName` - Method name string
-
-### Annotation Inheritance
-
-Method-level annotations combine with class-level:
-
-```java
-@Secured("USER")  // All methods require USER role
 @RestController
 public class UserController {
 
-    @GetMapping("/profile")  // Inherits @Secured("USER")
+    // Any authenticated user
+    @Secured
+    @GetMapping("/profile")
     public User getProfile() { }
 
-    @Secured("ADMIN")  // Requires USER + ADMIN (combined)
-    @DeleteMapping("/{id}")
+    // Specific role required
+    @Secured("ADMIN")
+    @DeleteMapping("/users/{id}")
     public void deleteUser(@PathVariable Long id) { }
+
+    // Multiple roles (OR logic)
+    @Secured({"ADMIN", "MANAGER"})
+    @GetMapping("/reports")
+    public List<Report> getReports() { }
+
+    // Multiple roles (AND logic)
+    @Secured(value = {"VERIFIED", "PREMIUM"}, all = true)
+    @GetMapping("/premium-content")
+    public Content getPremiumContent() { }
+
+    // Permission-based
+    @Secured(permissions = "users:delete")
+    @DeleteMapping("/users/{id}")
+    public void deleteUser(@PathVariable Long id) { }
+
+    // Custom SpEL condition
+    @Secured(condition = "#id == principal.id or hasRole('ADMIN')")
+    @GetMapping("/users/{id}")
+    public User getUser(@PathVariable String id) { }
 }
 ```
 
-### Error Handling
+### Imperative Authorization (Facades)
 
-Customize error responses:
+Use facades for programmatic security checks:
 
+#### Auth Facade - User Information
 ```java
-@ControllerAdvice
-public class CustomSecurityExceptionHandler {
+@Service
+public class UserService {
 
-    @ExceptionHandler(UnauthorizedException.class)
-    public ResponseEntity<?> handleUnauthorized(UnauthorizedException ex) {
-        return ResponseEntity.status(401).body(Map.of(
-            "error", "UNAUTHORIZED",
-            "message", ex.getMessage(),
-            "timestamp", Instant.now()
-        ));
-    }
-
-    @ExceptionHandler(AccessDeniedException.class)
-    public ResponseEntity<?> handleAccessDenied(AccessDeniedException ex) {
-        return ResponseEntity.status(403).body(Map.of(
-            "error", "FORBIDDEN",
-            "message", ex.getMessage(),
-            "timestamp", Instant.now()
-        ));
+    public void updateProfile(UpdateProfileRequest request) {
+        // Access current user information
+        String userId = Auth.id();
+        String username = Auth.username();
+        boolean isAdmin = Auth.isAdmin();
+        String email = Auth.claim("email");
+        
+        // Get full user object
+        LazyUser user = Auth.user();
+        Set<String> roles = user.getRoles();
+        
+        // Password operations
+        String hashedPassword = Auth.hashPassword(request.getNewPassword());
+        boolean isValidPassword = Auth.checkPassword(request.getCurrentPassword(), user.getPasswordHash());
+        
+        if (!isValidPassword) {
+            throw new UnauthorizedException("Current password is incorrect");
+        }
+        
+        // Update logic...
     }
 }
 ```
 
----
-
-## Examples
-
-### REST API with JWT
-
-Complete example of a JWT-protected REST API:
-
+#### Guard Facade - Authorization Checks
 ```java
-@EnableLazySecurity(
-    jwt = @JwtConfig(secret = "${JWT_SECRET}"),
-    publicPaths = {"/auth/**", "/health"}
-)
-@SpringBootApplication
-public class Application { }
+@Service
+public class AdminService {
 
+    public void deleteUser(String userId) {
+        // Simple authorization checks (throws AccessDeniedException if fails)
+        Guard.admin();                           // Requires ADMIN role
+        Guard.role("USER_MANAGER");             // Requires specific role
+        Guard.anyRole("ADMIN", "SUPER_ADMIN");  // Requires any of these roles
+        Guard.owner(userId);                    // Ownership check with admin bypass
+        
+        // Fluent authorization API
+        Guard.check()
+            .role("ADMIN")
+            .permission("users:delete")
+            .authorize();
+        
+        userRepository.delete(userId);
+    }
+
+    public Data getSensitiveData() {
+        // Complex authorization logic
+        Guard.check()
+            .authenticated()
+            .anyRole("ADMIN", "ANALYST")
+            .permission("data:read")
+            .condition(() -> isBusinessHours())
+            .authorize();
+        
+        return dataService.getSensitiveData();
+    }
+}
+```
+
+### User Information Access
+
+#### Method Parameter Injection
+```java
 @RestController
-@RequestMapping("/auth")
-public class AuthController {
+public class ProfileController {
 
-    @Autowired
-    private UserService userService;
+    @Secured
+    @GetMapping("/profile")
+    public UserResponse getProfile(LazyUser user) {
+        // LazyUser automatically injected
+        return UserResponse.builder()
+            .id(user.getId())
+            .username(user.getUsername())
+            .roles(user.getRoles())
+            .email(user.getClaim("email"))
+            .build();
+    }
+}
+```
+
+#### Security Context Access
+```java
+@Service
+public class AuditService {
+
+    public void logUserAction(String action) {
+        LazyUser user = LazySecurityContext.getCurrentUser();
+        
+        if (user.isAuthenticated()) {
+            auditRepository.save(new AuditLog(
+                user.getId(),
+                user.getUsername(),
+                action,
+                Instant.now()
+            ));
+        }
+    }
+}
+```
+
+## JWT Management
+
+### Token Structure
+
+LazySpringSecurity generates JWT tokens with the following structure:
+
+```json
+{
+  "sub": "user-id",
+  "username": "john.doe", 
+  "roles": ["USER", "ADMIN"],
+  "permissions": ["users:read", "posts:write"],
+  "custom-claim": "value",
+  "iss": "your-app",
+  "iat": 1640995200,
+  "exp": 1641081600
+}
+```
+
+### Token Operations
+
+```java
+@Service
+public class TokenService {
 
     @Autowired
     private JwtService jwtService;
 
-    @Public
-    @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody LoginRequest request) {
-        return userService.findByUsername(request.username())
-            .filter(user -> Auth.checkPassword(request.password(), user.getPasswordHash()))
-            .map(user -> {
-                LazyUser lazyUser = LazyUser.builder()
-                    .id(user.getId())
-                    .username(user.getUsername())
-                    .roles(user.getRoles().toArray(new String[0]))
-                    .build();
-                TokenPair tokens = jwtService.createTokens(lazyUser);
-                return ResponseEntity.ok(tokens.toMap());
-            })
-            .orElse(ResponseEntity.status(401).body(Map.of(
-                "error", "Invalid credentials"
-            )));
-    }
-}
-
-@RestController
-@RequestMapping("/api")
-public class ApiController {
-
-    @Secured
-    @GetMapping("/profile")
-    public Map<String, Object> getProfile() {
-        return Map.of(
-            "id", Auth.id(),
-            "username", Auth.username(),
-            "roles", Auth.user().getRoles()
-        );
+    public TokenPair generateTokens(LazyUser user) {
+        return jwtService.createTokens(user);
     }
 
-    @Secured("ADMIN")
-    @GetMapping("/users")
-    public List<User> listUsers() {
-        return userService.findAll();
+    public TokenPair generateTokensWithClaims(LazyUser user, Map<String, Object> extraClaims) {
+        return jwtService.createTokens(user, extraClaims);
+    }
+
+    public TokenPair refreshTokens(String refreshToken) {
+        return jwtService.refresh(refreshToken);
+    }
+
+    public LazyUser validateToken(String token) {
+        return jwtService.validateToken(token);
+    }
+
+    public void revokeToken(String token) {
+        jwtService.revokeToken(token);
+    }
+
+    public boolean isTokenValid(String token) {
+        return jwtService.isValid(token);
     }
 }
 ```
 
-### Role-Based Access Control
+### Token Blacklisting
+
+```java
+@Service
+public class LogoutService {
+
+    @Autowired
+    private TokenBlacklist tokenBlacklist;
+
+    @PostMapping("/logout")
+    @Secured
+    public void logout(HttpServletRequest request) {
+        String token = extractTokenFromRequest(request);
+        
+        // Add token to blacklist
+        tokenBlacklist.blacklist(token);
+        
+        // Optionally, blacklist refresh token as well
+        String refreshToken = extractRefreshToken(request);
+        if (refreshToken != null) {
+            tokenBlacklist.blacklist(refreshToken);
+        }
+    }
+
+    @PostMapping("/logout-all")
+    @Secured
+    public void logoutAllDevices() {
+        LazyUser user = Auth.user();
+        
+        // Blacklist all tokens for current user
+        tokenBlacklist.blacklistAllForUser(user.getId());
+    }
+}
+```
+
+## Advanced Features
+
+### SpEL Expressions
+
+LazySpringSecurity supports Spring Expression Language (SpEL) for complex authorization conditions:
+
+#### Available Variables
+- `principal` - Current LazyUser object
+- `#parameterName` - Method parameters by name
+- `authentication` - Spring Security Authentication object
+- `request` - Current HttpServletRequest (in web context)
+
+#### Examples
+
+**Parameter-based Authorization:**
+```java
+@Secured(condition = "#userId == principal.id")
+@GetMapping("/users/{userId}/orders")
+public List<Order> getUserOrders(@PathVariable String userId) {
+    return orderService.findByUserId(userId);
+}
+```
+
+**Request Body Validation:**
+```java
+@Secured(condition = "#order.customerId == principal.id or hasRole('ADMIN')")
+@PostMapping("/orders")
+public Order createOrder(@RequestBody Order order) {
+    return orderService.create(order);
+}
+```
+
+**Time-based Authorization:**
+```java
+@Secured(condition = "hasRole('ADMIN') or T(java.time.LocalTime).now().getHour() < 18")
+@GetMapping("/business-hours-data")
+public Data getBusinessHoursData() {
+    return dataService.getBusinessData();
+}
+```
+
+**Complex Business Logic:**
+```java
+@Secured(condition = """
+    hasRole('MANAGER') and 
+    #report.department == principal.getClaim('department') and
+    #report.confidentialityLevel <= principal.getClaim('clearanceLevel')
+""")
+@GetMapping("/reports/{reportId}")
+public Report getReport(@PathVariable Long reportId, @RequestParam Report report) {
+    return reportService.findById(reportId);
+}
+```
+
+### Custom User Details
+
+Extend LazyUser with custom claims:
+
+```java
+public class CustomUserService {
+
+    public TokenPair authenticateUser(String username, String password) {
+        User user = userRepository.findByUsername(username);
+        
+        if (user != null && passwordEncoder.matches(password, user.getPassword())) {
+            LazyUser lazyUser = LazyUser.builder()
+                .id(user.getId())
+                .username(user.getUsername())
+                .roles(user.getRoles())
+                .permissions(user.getPermissions())
+                // Custom claims
+                .claim("email", user.getEmail())
+                .claim("department", user.getDepartment())
+                .claim("clearanceLevel", user.getClearanceLevel())
+                .claim("lastLogin", user.getLastLogin())
+                .claim("preferences", user.getPreferences())
+                .build();
+
+            return jwtService.createTokens(lazyUser);
+        }
+
+        throw new UnauthorizedException("Invalid credentials");
+    }
+}
+```
+
+Access custom claims:
 
 ```java
 @RestController
-@RequestMapping("/api")
-public class RbacController {
+public class UserController {
 
-    // Any authenticated user
     @Secured
     @GetMapping("/dashboard")
-    public Dashboard getDashboard() { }
+    public DashboardData getDashboard(LazyUser user) {
+        String department = user.getClaim("department");
+        Integer clearanceLevel = user.getClaim("clearanceLevel", Integer.class);
+        LocalDateTime lastLogin = user.getClaim("lastLogin", LocalDateTime.class);
 
-    // Only managers or admins
-    @Secured({"MANAGER", "ADMIN"})
-    @GetMapping("/reports")
-    public List<Report> getReports() { }
-
-    // Only users with BOTH roles
-    @Secured(value = {"VERIFIED", "PREMIUM"}, all = true)
-    @GetMapping("/premium")
-    public PremiumContent getPremiumContent() { }
-
-    // Permission-based
-    @Secured(permissions = "documents:export")
-    @GetMapping("/documents/export")
-    public byte[] exportDocuments() { }
+        return dashboardService.getDashboardData(department, clearanceLevel, lastLogin);
+    }
 }
 ```
 
-### Resource Ownership
+### Rate Limiting Configuration
 
 ```java
-@RestController
-@RequestMapping("/api/users/{userId}")
-public class UserResourceController {
+@Configuration
+public class RateLimitConfig {
 
-    // User can only access their own orders
-    @Secured
-    @Owner(field = "userId")
-    @GetMapping("/orders")
-    public List<Order> getOrders(@PathVariable String userId) { }
-
-    // User can only update their own profile, admin can update any
-    @Secured
-    @Owner(field = "userId", adminBypass = true)
-    @PutMapping("/profile")
-    public User updateProfile(
-        @PathVariable String userId,
-        @RequestBody UpdateProfileRequest request
-    ) { }
-
-    // Support staff can also access
-    @Secured
-    @Owner(field = "userId", bypassRoles = {"ADMIN", "SUPPORT"})
-    @GetMapping("/tickets")
-    public List<Ticket> getTickets(@PathVariable String userId) { }
+    @Bean
+    public RateLimitManager rateLimitManager() {
+        return RateLimitManager.builder()
+            .defaultWindow(Duration.ofMinutes(1))
+            .defaultRequests(100)
+            .keyResolver(request -> {
+                // Custom key resolution logic
+                LazyUser user = LazySecurityContext.getCurrentUser();
+                return user.isAuthenticated() ? user.getId() : request.getRemoteAddr();
+            })
+            .storage(redisTemplate()) // Use Redis for distributed rate limiting
+            .build();
+    }
 }
 ```
 
-### Rate Limiting
+### Audit Configuration
+
+```java
+@Configuration
+public class AuditConfig {
+
+    @Bean
+    public AuditEventHandler auditEventHandler() {
+        return new CustomAuditEventHandler();
+    }
+    
+    public class CustomAuditEventHandler implements AuditEventHandler {
+        
+        @Override
+        public void handle(AuditEvent event) {
+            // Custom audit handling logic
+            if (event.getLevel() == AuditLevel.CRITICAL) {
+                alertingService.sendSecurityAlert(event);
+            }
+            
+            auditRepository.save(event);
+            elasticsearchService.index(event);
+        }
+    }
+}
+```
+
+## Best Practices
+
+### Security Configuration
+
+1. **Environment-based Secrets**
+   ```bash
+   # Never hardcode secrets in source code
+   export JWT_SECRET=$(openssl rand -base64 32)
+   export DB_PASSWORD=secure-password
+   ```
+
+2. **Token Expiration Strategy**
+   ```yaml
+   lazy-security:
+     jwt:
+       expiration: 15m      # Short-lived access tokens
+       refresh-expiration: 7d # Longer-lived refresh tokens
+   ```
+
+3. **CORS Configuration**
+   ```yaml
+   lazy-security:
+     cors:
+       allowed-origins:
+         - https://yourdomain.com    # Specific domains only
+         - https://app.yourdomain.com
+       allow-credentials: true
+   ```
+
+### Authorization Design
+
+1. **Role Hierarchy**
+   ```java
+   // Use hierarchical roles
+   public enum Role {
+       USER,
+       MODERATOR,
+       ADMIN,
+       SUPER_ADMIN
+   }
+   
+   // SUPER_ADMIN inherits all permissions from ADMIN, etc.
+   ```
+
+2. **Permission Granularity**
+   ```java
+   // Use specific permissions for fine-grained control
+   @Secured(permissions = {"users:read", "users:write"})
+   @Secured(permissions = "posts:delete")
+   @Secured(permissions = "admin:system_settings")
+   ```
+
+3. **Progressive Security**
+   ```java
+   @RestController
+   public class UserController {
+   
+       @Public // Start with public access
+       @GetMapping("/users")
+       public List<User> getUsers() { }
+   
+       @Secured // Add authentication requirement
+       @GetMapping("/users/me")
+       public User getCurrentUser() { }
+   
+       @Secured("ADMIN") // Add role requirement
+       @PostMapping("/users")
+       public User createUser() { }
+   
+       @Secured(condition = "#id == principal.id or hasRole('ADMIN')") // Add complex logic
+       @PutMapping("/users/{id}")
+       public User updateUser(@PathVariable String id) { }
+   }
+   ```
+
+### Performance Optimization
+
+1. **Annotation Caching**
+   ```java
+   // Annotations are automatically cached, but you can optimize SpEL expressions
+   @Secured(condition = "principal.getClaim('department') == 'IT'") // Cached
+   @Secured(condition = "hasRole('ADMIN')") // Use simple expressions when possible
+   ```
+
+2. **JWT Validation**
+   ```yaml
+   lazy-security:
+     jwt:
+       # Use appropriate algorithms
+       algorithm: HS256  # Fast for symmetric keys
+       # algorithm: RS256 # Use for asymmetric keys in microservices
+   ```
+
+3. **Database Optimization**
+   ```java
+   // Optimize user and role queries
+   @Entity
+   public class User {
+       @ManyToMany(fetch = FetchType.EAGER) // For small role sets
+       private Set<Role> roles;
+       
+       @ElementCollection(fetch = FetchType.EAGER) // For simple permissions
+       private Set<String> permissions;
+   }
+   ```
+
+### Error Handling
+
+1. **Custom Error Messages**
+   ```java
+   @Secured(
+       value = "ADMIN", 
+       message = "Administrator privileges required for user management operations"
+   )
+   @DeleteMapping("/users/{id}")
+   public void deleteUser(@PathVariable Long id) { }
+   ```
+
+2. **Global Exception Handling**
+   ```java
+   @RestControllerAdvice
+   public class SecurityExceptionHandler {
+   
+       @ExceptionHandler(UnauthorizedException.class)
+       public ResponseEntity<ErrorResponse> handleUnauthorized(UnauthorizedException ex) {
+           return ResponseEntity.status(401)
+               .body(new ErrorResponse("UNAUTHORIZED", ex.getMessage()));
+       }
+       
+       @ExceptionHandler(AccessDeniedException.class)
+       public ResponseEntity<ErrorResponse> handleAccessDenied(AccessDeniedException ex) {
+           // Log security violation
+           securityLogger.logAccessDenied(Auth.user(), ex);
+           
+           return ResponseEntity.status(403)
+               .body(new ErrorResponse("ACCESS_DENIED", "Insufficient privileges"));
+       }
+   }
+   ```
+
+### Testing
+
+1. **Unit Testing with Security**
+   ```java
+   @ExtendWith(MockitoExtension.class)
+   class UserServiceTest {
+   
+       @Test
+       void testSecureMethod() {
+           // Mock security context
+           LazyUser mockUser = LazyUser.builder()
+               .id("123")
+               .username("testuser")
+               .roles("USER")
+               .build();
+               
+           LazySecurityContext.setCurrentUser(mockUser);
+           
+           try {
+               // Test your secured methods
+               userService.updateProfile(request);
+           } finally {
+               LazySecurityContext.clear();
+           }
+       }
+   }
+   ```
+
+2. **Integration Testing**
+   ```java
+   @SpringBootTest
+   @AutoConfigureMockMvc
+   class SecurityIntegrationTest {
+   
+       @Autowired
+       private MockMvc mockMvc;
+       
+       @Autowired
+       private JwtService jwtService;
+   
+       @Test
+       void testSecuredEndpoint() throws Exception {
+           LazyUser user = LazyUser.builder()
+               .id("123")
+               .username("testuser")
+               .roles("ADMIN")
+               .build();
+               
+           String token = jwtService.createTokens(user).accessToken();
+   
+           mockMvc.perform(get("/api/admin/users")
+                   .header("Authorization", "Bearer " + token))
+               .andExpect(status().isOk());
+       }
+   }
+   ```
+
+## Troubleshooting
+
+### Common Issues
+
+#### 1. JWT Secret Too Short
+**Error:** `JWT secret must be at least 256 bits`
+**Solution:**
+```properties
+# Ensure secret is at least 32 characters
+lazy-security.jwt.secret=your-very-secure-256-bit-secret-key-here-change-this-in-production
+```
+
+#### 2. Token Not Found
+**Error:** `401 Unauthorized` even with valid token
+**Solution:**
+```java
+// Verify token format in requests
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+```
+
+#### 3. CORS Issues
+**Error:** Browser blocks requests due to CORS
+**Solution:**
+```yaml
+lazy-security:
+  cors:
+    enabled: true
+    allowed-origins:
+      - http://localhost:3000  # Add your frontend URL
+    allowed-methods:
+      - GET
+      - POST
+      - PUT
+      - DELETE
+      - OPTIONS
+```
+
+#### 4. SpEL Expression Errors
+**Error:** `Expression parsing failed`
+**Solution:**
+```java
+// Check expression syntax
+@Secured(condition = "#userId == principal.id") // Correct
+@Secured(condition = "#userId = principal.id")  // Incorrect (single =)
+```
+
+#### 5. Role Not Working
+**Error:** `403 Forbidden` even with correct role
+**Solution:**
+```java
+// Verify role format (case-sensitive)
+@Secured("ADMIN")      // Correct
+@Secured("admin")      // May not match if roles are uppercase
+
+// Check user role assignment
+LazyUser user = LazyUser.builder()
+    .roles("USER", "ADMIN") // Ensure ADMIN role is included
+    .build();
+```
+
+### Debug Mode
+
+Enable debug mode to see configuration details:
+
+```yaml
+lazy-security:
+  debug: true
+  
+logging:
+  level:
+    ao.sudojed.lss: DEBUG
+```
+
+### Health Checks
+
+Monitor security status:
 
 ```java
 @RestController
-@RequestMapping("/api")
-public class RateLimitedController {
+public class SecurityHealthController {
 
-    // General API limit
-    @RateLimit(requests = 100, window = 60)
-    @Secured
-    @GetMapping("/data")
-    public Data getData() { }
-
-    // Strict limit for login
-    @RateLimit(requests = 5, window = 300, key = "ip")
     @Public
-    @PostMapping("/login")
-    public Token login(@RequestBody LoginRequest request) { }
-
-    // Per-user limit for expensive operations
-    @RateLimit(requests = 10, window = 3600, perUser = true)
-    @Secured
-    @PostMapping("/reports/generate")
-    public Report generateReport() { }
+    @GetMapping("/health/security")
+    public Map<String, Object> securityHealth() {
+        return Map.of(
+            "jwtEnabled", jwtService.isEnabled(),
+            "tokenBlacklistSize", tokenBlacklist.size(),
+            "activeUsers", LazySecurityContext.getActiveUserCount()
+        );
+    }
 }
 ```
-
----
 
 ## Migration Guide
 
 ### From Spring Security
 
-**Before (Spring Security):**
+If you're migrating from traditional Spring Security:
 
+**Before (Spring Security):**
 ```java
 @Configuration
 @EnableWebSecurity
-@EnableMethodSecurity
 public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         return http
             .csrf(csrf -> csrf.disable())
-            .sessionManagement(session ->
+            .sessionManagement(session -> 
                 session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/public/**").permitAll()
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
-                .anyRequest().authenticated()
-            )
-            .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
+                .anyRequest().authenticated())
             .build();
     }
 }
 
 @RestController
-public class MyController {
-    
+public class UserController {
+
     @PreAuthorize("hasRole('ADMIN')")
-    @GetMapping("/admin/users")
-    public List<User> getUsers() { }
+    @DeleteMapping("/users/{id}")
+    public void deleteUser(@PathVariable Long id) { }
 }
 ```
 
 **After (LazySpringSecurity):**
-
 ```java
-@EnableLazySecurity(
-    jwt = @JwtConfig(secret = "${JWT_SECRET}"),
-    publicPaths = {"/api/public/**"}
-)
 @SpringBootApplication
-public class MyApplication { }
+@EnableLazySecurity
+public class Application { }
 
 @RestController
-public class MyController {
-    
+public class UserController {
+
     @Secured("ADMIN")
-    @GetMapping("/admin/users")
-    public List<User> getUsers() { }
+    @DeleteMapping("/users/{id}")
+    public void deleteUser(@PathVariable Long id) { }
 }
 ```
 
----
+### From Other JWT Libraries
 
-## Troubleshooting
+**Before (Manual JWT):**
+```java
+@Component
+public class JwtAuthenticationFilter extends OncePerRequestFilter {
+    // 50+ lines of boilerplate code for token extraction and validation
+}
 
-### Common Issues
+@RestController
+public class AuthController {
+    // Manual token generation and user authentication
+    // 100+ lines of authentication logic
+}
+```
 
-#### 1. "JWT_SECRET not configured"
+**After (LazySpringSecurity):**
+```java
+@RestController
+public class AuthController {
 
-**Solution:** Set the JWT secret in environment or application.yml:
+    @Login(userService = UserService.class)
+    @PostMapping("/login")
+    public TokenResponse login(@RequestBody LoginRequest request) {
+        // Automatic implementation
+    }
 
+    @Register(userService = UserService.class)
+    @PostMapping("/register")
+    public UserResponse register(@RequestBody RegisterRequest request) {
+        // Automatic implementation
+    }
+}
+```
+
+### Configuration Migration
+
+**application.yml migration:**
 ```yaml
+# Old Spring Security configuration
+spring:
+  security:
+    user:
+      name: admin
+      password: secret
+      roles: ADMIN
+
+# New LazySpringSecurity configuration  
 lazy-security:
   jwt:
-    secret: ${JWT_SECRET:your-secret-key-at-least-32-characters}
-```
-
-#### 2. "401 Unauthorized" on all requests
-
-**Possible causes:**
-- Token not sent in Authorization header
-- Token prefix mismatch (should be "Bearer ")
-- Token expired
-- Invalid token signature
-
-**Debug:**
-```yaml
-lazy-security:
-  debug: true
-```
-
-#### 3. CORS errors
-
-**Solution:** Configure CORS in @EnableLazySecurity:
-
-```java
-@EnableLazySecurity(
-    corsEnabled = true,
-    corsOrigins = {"http://localhost:3000"}
-)
-```
-
-#### 4. @Secured not working
-
-**Check:**
-- Is the annotation on a public method?
-- Is the class a Spring-managed bean?
-- Is AspectJ auto-proxy enabled?
-
-### Debug Mode
-
-Enable comprehensive logging:
-
-```java
-@EnableLazySecurity(debug = true)
-```
-
-Or in application.yml:
-
-```yaml
-lazy-security:
-  debug: true
-
-logging:
-  level:
-    ao.sudojed.lss: DEBUG
-    AUDIT: INFO
-```
-
-### Logging Configuration
-
-Configure logging in `logback-spring.xml`:
-
-```xml
-<configuration>
-    <!-- Security logs -->
-    <logger name="ao.sudojed.lss" level="DEBUG"/>
-    
-    <!-- Audit logs to separate file -->
-    <appender name="AUDIT_FILE" class="ch.qos.logback.core.FileAppender">
-        <file>logs/audit.log</file>
-        <encoder>
-            <pattern>%d{ISO8601} %msg%n</pattern>
-        </encoder>
-    </appender>
-    
-    <logger name="AUDIT" level="INFO" additivity="false">
-        <appender-ref ref="AUDIT_FILE"/>
-    </logger>
-</configuration>
+    secret: ${JWT_SECRET}
+    expiration: 24h
+  cors:
+    enabled: true
+    allowed-origins:
+      - http://localhost:3000
 ```
 
 ---
 
-## Support
+**Version**: 1.0.0-SNAPSHOT  
+**Last Updated**: January 2026  
+**Spring Boot Compatibility**: 3.4.x  
+**Java Requirement**: 21+
 
-- **GitHub Issues:** [Report bugs and request features](https://github.com/jedin01/ls2/issues)
-- **Documentation:** [ARCHITECTURE.md](ARCHITECTURE.md)
-
----
-
-**Made with ❤️ by Sudojed Team**
+For more information, visit our [GitHub repository](https://github.com/sudojed/lazy-spring-security).
