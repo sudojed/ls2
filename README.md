@@ -1,80 +1,33 @@
 # LazySpringSecurity (LSS)
 
-**Zero-configuration security for Spring Boot APIs**
+**Annotation-driven security framework for Spring Boot applications**
 
 [![JitPack](https://jitpack.io/v/jedin01/ls2.svg)](https://jitpack.io/#jedin01/ls2)
 
-Transform complex Spring Security configurations into simple, readable annotations. LSS follows **Convention over Configuration** principles, eliminating the need for countless configuration files, JWT setup, encoders, filters, and middleware - everything works out of the box.
+LazySpringSecurity simplifies Spring Security configuration by using annotations to define endpoint security directly in your controllers. No manual configuration files, no complex setup - just clean, readable security annotations.
 
-## Why LSS?
+## Features
 
-**Traditional Spring Security requires multiple files:**
+### Core Security Annotations
+- **@Public** - Mark endpoints as publicly accessible
+- **@Secured** - Require authentication with optional role-based access
+- **@Register** - Auto-generate user registration endpoints
+- **@Login** - Auto-generate authentication endpoints  
+- **@RefreshToken** - Auto-generate token refresh endpoints
 
-```
-📁 src/main/java/security/
-├── SecurityConfig.java         (50+ lines)
-├── JwtAuthenticationFilter.java
-├── JwtTokenProvider.java
-├── JwtAuthenticationEntryPoint.java
-├── UserDetailsServiceImpl.java
-├── PasswordEncoderConfig.java
-├── CorsConfig.java
-└── WebSecurityConfig.java
+### Advanced Security Annotations
+- **@Owner** - Resource ownership verification (user can only access their own data)
+- **@RateLimit** - Request rate limiting and abuse prevention
+- **@Audit** - Automatic security event logging and tracking
+- **@Cached** - Security-aware intelligent response caching
 
-📁 src/main/resources/
-└── application.yml/properties  (50+ lines JWT, CORS, CSRF config)
-```
-
-```java
-@Configuration
-@EnableWebSecurity
-public class SecurityConfig {
-    @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        return http
-            .csrf(csrf -> csrf.disable())
-            .sessionManagement(session -> 
-                session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/api/public/**").permitAll()
-                .requestMatchers("/api/admin/**").hasRole("ADMIN")
-                .anyRequest().authenticated())
-            .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
-            .build();
-    }
-    // + JwtDecoder, PasswordEncoder, AuthenticationManager, etc.
-}
-```
-
-**With LazySpringSecurity (Convention over Configuration):**
-
-```
-📁 src/main/java/
-└── MyController.java           (Clean business logic)
-
-📁 src/main/resources/
-└── application.yml/properties  (5 lines of config)
-```
-
-```java
-@RestController
-public class ApiController {
-    
-    @Public  // No SecurityConfig needed
-    @GetMapping("/api/public/data")
-    public Data getPublicData() { }
-    
-    @Secured("ADMIN")  // No role configuration needed
-    @DeleteMapping("/api/admin/users/{id}")
-    public void deleteUser(@PathVariable Long id) { }
-    
-    @Owner(field = "userId")  // No ownership logic needed
-    @GetMapping("/api/users/{userId}/profile")
-    public Profile getProfile(@PathVariable Long userId) { }
-}
-```
-
-**Result: 90% fewer files, 95% less configuration code!**
+### Key Features
+- **JWT Token Management** - Automatic token generation, validation, and refresh
+- **Role-Based Access Control** - Fine-grained permission system
+- **Automatic Endpoint Discovery** - Zero manual configuration needed
+- **Meta-Annotation Support** - @Register/@Login/@RefreshToken inherit @Public automatically
+- **Ownership Verification** - Built-in resource ownership checking
+- **Performance Optimization** - Rate limiting and intelligent caching
 
 ## Quick Start
 
@@ -104,191 +57,421 @@ repositories {
 implementation 'com.github.jedin01:ls2:v1.0.0'
 ```
 
-### 2. Configure
+### 2. Enable LSS
 
-**application.yml:**
-```yaml
-lss:
-  jwt:
-    secret: "your-256-bit-secret-key"
-    expiration: 86400000  # 24 hours
-  security:
-    enabled: true
-    cors:
-      allowed-origins: ["http://localhost:3000"]
+```java
+@SpringBootApplication
+@EnableLazySecurity(
+    jwt = @JwtConfig(
+        secret = "${JWT_SECRET:your-secret-key}",
+        expiration = 3600000,
+        refreshExpiration = 86400000
+    )
+)
+public class Application {
+    public static void main(String[] args) {
+        SpringApplication.run(Application.class, args);
+    }
+}
 ```
 
-**application.properties:**
-```properties
-lss.jwt.secret=your-256-bit-secret-key
-lss.jwt.expiration=86400000
-lss.security.enabled=true
-lss.security.cors.allowed-origins=http://localhost:3000
-```
-
-> Choose your preferred format - both work identically with LSS!
-
-### 3. Secure Your APIs
+### 3. Secure Your Endpoints
 
 ```java
 @RestController
-public class MyController {
+@RequestMapping("/api")
+public class ApiController {
     
-    // Public endpoint
+    // Public endpoint - no authentication required
     @Public
     @GetMapping("/health")
-    public String health() {
-        return "OK";
+    public ResponseEntity<String> health() {
+        return ResponseEntity.ok("OK");
     }
     
-    // Requires authentication
+    // Protected endpoint - authentication required
     @Secured
     @GetMapping("/profile")
-    public User getProfile(Principal principal) {
-        return userService.findByUsername(principal.getName());
+    public ResponseEntity<User> getProfile() {
+        // Implementation here
+        return ResponseEntity.ok(user);
     }
     
-    // Admin only
+    // Admin only endpoint
     @Secured("ADMIN")
     @DeleteMapping("/users/{id}")
-    public void deleteUser(@PathVariable Long id) {
-        userService.delete(id);
+    public ResponseEntity<Void> deleteUser(@PathVariable String id) {
+        // Implementation here
+        return ResponseEntity.noContent().build();
     }
     
-    // Multiple roles
-    @Secured({"ADMIN", "MODERATOR"})
-    @PostMapping("/moderate")
-    public void moderateContent(@RequestBody Content content) {
-        contentService.moderate(content);
+    // Multiple roles allowed
+    @Secured({"ADMIN", "MANAGER"})
+    @PostMapping("/reports")
+    public ResponseEntity<Report> createReport(@RequestBody ReportRequest request) {
+        // Implementation here
+        return ResponseEntity.ok(report);
     }
     
-    // Owner verification
+    // Ownership verification - users can only access their own data
     @Owner(field = "userId")
-    @GetMapping("/users/{userId}/settings")
-    public Settings getUserSettings(@PathVariable Long userId) {
-        return settingsService.findByUserId(userId);
+    @GetMapping("/users/{userId}/profile")
+    public ResponseEntity<UserProfile> getUserProfile(@PathVariable String userId) {
+        // Implementation here - automatically verifies userId matches current user
+        return ResponseEntity.ok(userProfile);
     }
     
     // Rate limiting
-    @RateLimit(requests = 100, window = 60)
-    @PostMapping("/process")
-    public Result processData(@RequestBody DataRequest request) {
-        return dataService.process(request);
+    @RateLimit(requests = 10, windowInSeconds = 60)
+    @PostMapping("/api/contact")
+    public ResponseEntity<String> submitContactForm(@RequestBody ContactRequest request) {
+        // Implementation here - max 10 requests per minute
+        return ResponseEntity.ok("Message sent");
     }
     
-    // Audit logging
-    @Audit(action = "USER_DELETION", level = Audit.AuditLevel.CRITICAL)
+    // Audit logging for sensitive operations
+    @Audit(action = "USER_DELETE", level = Audit.AuditLevel.HIGH)
     @Secured("ADMIN")
     @DeleteMapping("/admin/users/{id}")
-    public void adminDeleteUser(@PathVariable Long id) {
-        userService.adminDelete(id);
+    public ResponseEntity<Void> deleteUser(@PathVariable String id) {
+        // Implementation here - automatically logged
+        return ResponseEntity.noContent().build();
+    }
+    
+    // Response caching
+    @Cached(ttl = 300, key = "user-stats")
+    @Public
+    @GetMapping("/api/statistics")
+    public ResponseEntity<Statistics> getStatistics() {
+        // Implementation here - cached for 5 minutes
+        return ResponseEntity.ok(statistics);
     }
 }
 ```
 
-## Key Features
+## Authentication Endpoints
 
-### 🛡️ **Security Annotations**
-- `@Public` - No authentication required
-- `@Secured` - Role-based access control with advanced conditions
-- `@Owner` - Resource ownership verification
-- `@RateLimit` - Request rate limiting
-- `@Audit` - Automatic security event logging
+LSS can auto-generate authentication endpoints using annotations:
 
-### ⚡ **Performance**
-- `@Cached` - Security-aware intelligent caching
-- Built-in rate limiting and DDoS protection
-- Optimized JWT processing
-
-### 🔧 **Convention over Configuration**
-- **Zero configuration files** - No SecurityConfig, JwtFilter, CorsConfig, etc.
-- **Auto-configured JWT** - Token generation, validation, refresh built-in
-- **Smart defaults** - Production-ready security out of the box
-- **Override when needed** - Sensible defaults, customizable when required
-- **One dependency** - Replaces 10+ security-related dependencies
-
-### 🚀 **What You Get For Free**
-- **JWT complete setup** - Generation, validation, refresh, blacklisting
-- **Password encryption** - BCrypt encoder with salt
-- **CORS handling** - Smart origin detection and configuration  
-- **Security headers** - CSRF, XSS, clickjacking protection
-- **Rate limiting** - DDoS protection and abuse prevention
-- **Audit logging** - Security events tracking
-- **Error handling** - Consistent security error responses
-
-## Advanced Usage
-
-### Dynamic Authorization
 ```java
-@Secured(condition = "#userId == principal.id or hasRole('ADMIN')")
-@PutMapping("/users/{userId}")
-public User updateUser(@PathVariable Long userId, @RequestBody User user) {
-    return userService.update(userId, user);
+@RestController
+@RequestMapping("/auth")
+public class AuthController {
+    
+    // Auto-generated registration endpoint
+    @Register(
+        userService = UserService.class,
+        createMethod = "createUser",
+        existsMethod = "findByUsername"
+    )
+    @PostMapping("/register")
+    public ResponseEntity<?> register(@RequestBody RegisterRequest request) {
+        return null; // Implementation generated automatically
+    }
+    
+    // Auto-generated login endpoint
+    @Login(
+        userService = UserService.class,
+        findMethod = "findByUsername"
+    )
+    @PostMapping("/login")
+    public ResponseEntity<?> login(@RequestBody LoginRequest request) {
+        return null; // Implementation generated automatically
+    }
+    
+    // Auto-generated token refresh endpoint
+    @RefreshToken
+    @PostMapping("/refresh")
+    public ResponseEntity<?> refresh(@RequestBody Map<String, String> request) {
+        return null; // Implementation generated automatically
+    }
 }
 ```
 
-### Permission-Based Access
+## User Service Integration
+
+Your UserService needs to implement the methods referenced in the annotations:
+
 ```java
-@Secured(permissions = {"users:read", "users:write"})
-@PostMapping("/users")
-public User createUser(@RequestBody CreateUserRequest request) {
-    return userService.create(request);
+@Service
+public class UserService {
+    
+    // For @Register annotation
+    public User createUser(String username, String email, String password) {
+        // Hash password and create user
+        String hashedPassword = Auth.hashPassword(password);
+        User user = new User(username, email, hashedPassword);
+        // Save and return user
+        return userRepository.save(user);
+    }
+    
+    // For @Login annotation  
+    public Optional<User> findByUsername(String username) {
+        return userRepository.findByUsername(username);
+    }
+    
+    // Other finder methods as needed
+    public Optional<User> findByEmail(String email) {
+        return userRepository.findByEmail(email);
+    }
 }
 ```
 
-### Automated Login Endpoints
+## Configuration Options
+
+### JWT Configuration
+```java
+@JwtConfig(
+    secret = "${JWT_SECRET}",           // JWT signing secret
+    expiration = 3600000,               // Access token expiration (1 hour)
+    refreshExpiration = 86400000,       // Refresh token expiration (24 hours)  
+    header = "Authorization",           // Token header name
+    prefix = "Bearer ",                 // Token prefix
+    issuer = "my-app"                  // Token issuer
+)
+```
+
+### Security Configuration
+```java
+@EnableLazySecurity(
+    jwt = @JwtConfig(...),
+    defaultRole = "USER",               // Default role for authenticated users
+    csrfEnabled = false,                // CSRF protection (default: false for APIs)
+    corsEnabled = true,                 // CORS configuration
+    corsOrigins = {"http://localhost:3000", "https://myapp.com"}
+)
+```
+
+## Annotation Reference
+
+### @Public
+Makes an endpoint publicly accessible without authentication.
+
+```java
+@Public
+@GetMapping("/api/status")
+public String getStatus() { return "OK"; }
+```
+
+### @Secured
+Requires authentication. Optionally specify required roles.
+
+```java
+// Any authenticated user
+@Secured
+@GetMapping("/api/profile")
+public User getProfile() { ... }
+
+// Specific role required
+@Secured("ADMIN")
+@DeleteMapping("/api/admin/users/{id}")
+public void deleteUser(@PathVariable String id) { ... }
+
+// Multiple roles (any of them)
+@Secured({"ADMIN", "MANAGER"}) 
+@GetMapping("/api/reports")
+public List<Report> getReports() { ... }
+```
+
+### @Register
+Auto-generates user registration logic.
+
+```java
+@Register(
+    userService = UserService.class,
+    createMethod = "createUser",
+    existsMethod = "findByUsername",
+    requestFields = {"username", "email", "password"},
+    uniqueField = "username",
+    autoLogin = false
+)
+```
+
+### @Login  
+Auto-generates authentication logic.
+
 ```java
 @Login(
     userService = UserService.class,
-    findMethod = "findByEmail"
+    findMethod = "findByUsername",
+    claims = {"email", "displayName"},
+    includeUserInfo = true
 )
-@PostMapping("/auth/login")
-public ResponseEntity<?> login(@RequestBody LoginRequest request) {
-    // Implementation generated automatically
+```
+
+### @RefreshToken
+Auto-generates token refresh logic.
+
+```java
+@RefreshToken(
+    tokenField = "refresh_token"
+)
+```
+
+### @Owner
+Validates resource ownership - users can only access their own data.
+
+```java
+// Path variable ownership
+@Owner(field = "userId")
+@GetMapping("/users/{userId}/orders")
+public List<Order> getUserOrders(@PathVariable String userId) { ... }
+
+// Entity ownership verification
+@Owner(entityField = "createdBy")
+@GetMapping("/posts/{id}")
+public Post getPost(@PathVariable Long id) { ... }
+
+// With admin bypass
+@Owner(field = "userId", adminBypass = true)
+@PutMapping("/users/{userId}")
+public User updateUser(@PathVariable String userId, @RequestBody User user) { ... }
+```
+
+### @RateLimit
+Prevents abuse with request rate limiting.
+
+```java
+// 100 requests per 60 seconds per IP
+@RateLimit(requests = 100, windowInSeconds = 60)
+@PostMapping("/api/upload")
+public ResponseEntity<?> uploadFile(@RequestParam MultipartFile file) { ... }
+
+// Per-user rate limiting
+@RateLimit(requests = 5, windowInSeconds = 60, perUser = true)
+@PostMapping("/api/send-email")
+public ResponseEntity<?> sendEmail(@RequestBody EmailRequest request) { ... }
+```
+
+### @Audit
+Automatic logging of security-sensitive operations.
+
+```java
+@Audit(action = "USER_LOGIN", level = Audit.AuditLevel.MEDIUM)
+@PostMapping("/login")
+public ResponseEntity<?> login(@RequestBody LoginRequest request) { ... }
+
+@Audit(action = "DATA_DELETE", level = Audit.AuditLevel.HIGH, 
+       includeRequest = true, includeResponse = false)
+@Secured("ADMIN")
+@DeleteMapping("/admin/data/{id}")
+public ResponseEntity<?> deleteData(@PathVariable String id) { ... }
+```
+
+### @Cached
+Security-aware response caching for improved performance.
+
+```java
+// Cache for 5 minutes with automatic key generation
+@Cached(ttl = 300)
+@Public
+@GetMapping("/api/public-data")
+public ResponseEntity<?> getPublicData() { ... }
+
+// Per-user caching
+@Cached(ttl = 600, perUser = true)
+@Secured
+@GetMapping("/api/user-dashboard")
+public ResponseEntity<?> getUserDashboard() { ... }
+
+// Custom cache key
+@Cached(ttl = 1800, key = "stats-${#category}")
+@Public
+@GetMapping("/api/stats/{category}")
+public ResponseEntity<?> getStatistics(@PathVariable String category) { ... }
+```
+
+## Key Benefits
+
+### Zero Configuration
+No need for manual `publicPaths` configuration. LSS automatically detects `@Public` and `@Secured` annotations and configures Spring Security accordingly.
+
+**Before (Manual Configuration):**
+```java
+@EnableLazySecurity(
+    jwt = @JwtConfig(secret = "..."),
+    publicPaths = {"/api/health", "/api/public/**", "/auth/**"}
+)
+```
+
+**After (Automatic Detection):**
+```java
+@EnableLazySecurity(jwt = @JwtConfig(secret = "..."))
+// publicPaths automatically detected from @Public annotations
+```
+
+### Self-Documenting
+Security requirements are visible directly in controller code, making it easy to understand what authentication is required for each endpoint.
+
+### Maintainable
+No duplicate configuration between annotations and manual path lists. Security configuration lives with the endpoint definition.
+
+## Example Application Structure
+
+```
+src/main/java/com/example/
+├── Application.java                    # @EnableLazySecurity
+├── controller/
+│   ├── AuthController.java             # @Register, @Login, @RefreshToken
+│   ├── UserController.java             # @Secured with roles
+│   └── PublicController.java           # @Public endpoints
+├── service/
+│   └── UserService.java                # User management logic
+├── model/
+│   └── User.java                       # User entity
+└── dto/
+    ├── LoginRequest.java
+    └── RegisterRequest.java
+```
+
+## Testing
+
+LSS provides utilities for testing secured endpoints:
+
+```java
+@TestMethodOrder(OrderAnnotation.class)
+class SecurityTest {
+    
+    @Test
+    @Order(1)
+    void testPublicEndpoint() {
+        // Test @Public endpoints
+        mockMvc.perform(get("/api/health"))
+            .andExpect(status().isOk());
+    }
+    
+    @Test  
+    @Order(2)
+    void testProtectedEndpointWithoutAuth() {
+        // Test @Secured endpoints without token
+        mockMvc.perform(get("/api/profile"))
+            .andExpect(status().isUnauthorized());
+    }
+    
+    @Test
+    @Order(3) 
+    void testLoginAndProtectedAccess() {
+        // Test login and use token
+        String token = // login and extract token
+        
+        mockMvc.perform(get("/api/profile")
+            .header("Authorization", "Bearer " + token))
+            .andExpect(status().isOk());
+    }
 }
 ```
 
-## What LSS Replaces
-
-### ❌ Files You Don't Need Anymore:
-```java
-// ❌ SecurityConfig.java
-// ❌ JwtAuthenticationFilter.java  
-// ❌ JwtTokenProvider.java
-// ❌ JwtAuthenticationEntryPoint.java
-// ❌ UserDetailsServiceImpl.java
-// ❌ PasswordEncoderConfig.java
-// ❌ CorsConfig.java
-// ❌ WebSecurityConfig.java
-// ❌ AuthenticationManagerConfig.java
-// ❌ JwtUtils.java
-```
-
-### ✅ What You Get Instead:
-- **One dependency** - `com.github.jedin01:ls2`
-- **Five lines of YAML** - Basic JWT configuration
-- **Clean annotations** - Security logic where it belongs
-- **Zero boilerplate** - Convention over Configuration in action
-
-### 🎯 Enterprise Features
-- **Multi-tenant support** - Isolated security contexts
-- **Integration ready** - LDAP, OAuth2, SAML connectors
-- **Compliance built-in** - GDPR, SOX, HIPAA patterns
-- **Observability** - Metrics, tracing, security dashboards
-- **Performance** - Sub-millisecond authorization decisions
-
 ## Documentation
 
-- [📖 Complete Annotation Guide](ANNOTATIONS_GUIDE.md)
-- [⚙️ Configuration Examples](CONFIGURATION_EXAMPLES.md) - YAML & Properties
-- [🚀 JitPack Setup Guide](JITPACK_USAGE.md)
-- [💡 Working Examples](example-project/)
+- [Demo Project](demo-project/) - Complete working example
+- [Test Scripts](test-registration.sh) - Automated testing with curl
+- [Migration Guide](RESOLVED_ISSUES.md) - Upgrading from manual configuration
 
-## Community
+## Requirements
 
-- **Issues**: [GitHub Issues](https://github.com/jedin01/ls2/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/jedin01/ls2/discussions)
-- **Email**: abner@sudojed.ao
+- Java 17+
+- Spring Boot 3.0+
+- Spring Security 6.0+
 
 ## License
 
@@ -296,4 +479,4 @@ MIT License - see [LICENSE](LICENSE) file for details.
 
 ---
 
-**Transform your Spring Boot security from complex to simple. Get started with LSS today.** 🛡️
+**LazySpringSecurity - Security annotations that just work**
