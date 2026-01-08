@@ -689,4 +689,4 @@ Contributions are welcome! Please read our contributing guidelines first.
 
 ---
 
-Made by Sudojed Team
+Made by Abner Lourenço
