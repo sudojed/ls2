@@ -20,15 +20,19 @@ import ao.sudojed.lss.jwt.TokenBlacklist;
 import ao.sudojed.lss.resolver.LazyUserArgumentResolver;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.ImportAware;
@@ -232,6 +236,11 @@ public class LazySecurityAutoConfiguration implements ImportAware {
     }
 
     @Bean
+    public PublicEndpointScanner publicEndpointScanner() {
+        return new PublicEndpointScanner();
+    }
+
+    @Bean
     public RateLimitAspect rateLimitAspect(RateLimitManager rateLimitManager) {
         return new RateLimitAspect(rateLimitManager);
     }
@@ -285,7 +294,8 @@ public class LazySecurityAutoConfiguration implements ImportAware {
     public SecurityFilterChain securityFilterChain(
         HttpSecurity http,
         LazyJwtFilter jwtFilter,
-        LazySecurityExceptionHandler exceptionHandler
+        LazySecurityExceptionHandler exceptionHandler,
+        ApplicationContext applicationContext
     ) throws Exception {
         // CSRF
         if (!properties.isCsrfEnabled()) {
@@ -308,10 +318,80 @@ public class LazySecurityAutoConfiguration implements ImportAware {
 
         // Authorization
         http.authorizeHttpRequests(auth -> {
-            // Public paths
-            for (String path : properties.getPublicPaths()) {
-                auth.requestMatchers(path).permitAll();
+            // Get annotation-based public patterns first (primary source of truth)
+            PublicEndpointScanner scanner = applicationContext.getBean(
+                PublicEndpointScanner.class
+            );
+            Set<String> annotationBasedPatterns = scanner.getPublicPatterns();
+
+            // Add annotation-based public endpoints
+            for (String pattern : annotationBasedPatterns) {
+                auth.requestMatchers(pattern).permitAll();
+                log.debug("Added @Public endpoint to security: {}", pattern);
             }
+
+            // Add legacy publicPaths configuration (with redundancy warning)
+            List<String> configuredPublicPaths = properties.getPublicPaths();
+            if (!configuredPublicPaths.isEmpty()) {
+                // Check for redundancy
+                Set<String> redundantPaths = new LinkedHashSet<>();
+                Set<String> necessaryPaths = new LinkedHashSet<>();
+
+                for (String path : configuredPublicPaths) {
+                    boolean isRedundant = annotationBasedPatterns
+                        .stream()
+                        .anyMatch(
+                            pattern ->
+                                pathMatchesPattern(path, pattern) ||
+                                pathMatchesPattern(pattern, path)
+                        );
+
+                    if (isRedundant) {
+                        redundantPaths.add(path);
+                    } else {
+                        necessaryPaths.add(path);
+                        auth.requestMatchers(path).permitAll();
+                        log.debug(
+                            "Added legacy publicPath to security: {}",
+                            path
+                        );
+                    }
+                }
+
+                // Warn about redundant configuration
+                if (!redundantPaths.isEmpty()) {
+                    log.warn("🔧 CONFIGURATION OPTIMIZATION OPPORTUNITY:");
+                    log.warn(
+                        "   The following publicPaths are redundant because"
+                    );
+                    log.warn(
+                        "   they're already covered by @Public annotations:"
+                    );
+                    for (String redundant : redundantPaths) {
+                        log.warn(
+                            "   - {} (remove from publicPaths)",
+                            redundant
+                        );
+                    }
+                    log.warn(
+                        "   💡 TIP: Use @Public annotations instead of publicPaths for better maintainability"
+                    );
+                }
+
+                if (necessaryPaths.isEmpty() && !redundantPaths.isEmpty()) {
+                    log.info(
+                        "✨ GREAT! All your public endpoints use @Public annotations"
+                    );
+                    log.info(
+                        "   Consider removing publicPaths entirely from @EnableLazySecurity"
+                    );
+                }
+            } else {
+                log.info(
+                    "✨ ANNOTATION-DRIVEN SECURITY: Using only @Public and @Secured annotations"
+                );
+            }
+
             // Other requests require authentication
             auth.anyRequest().authenticated();
         });
@@ -334,7 +414,29 @@ public class LazySecurityAutoConfiguration implements ImportAware {
         return http.build();
     }
 
+    /**
+     * Simple path matching helper for redundancy detection.
+     */
+    private boolean pathMatchesPattern(String path, String pattern) {
+        if (pattern.equals(path)) {
+            return true;
+        }
+        if (pattern.endsWith("/**")) {
+            String prefix = pattern.substring(0, pattern.length() - 3);
+            return path.startsWith(prefix);
+        }
+        if (pattern.endsWith("/*")) {
+            String prefix = pattern.substring(0, pattern.length() - 2);
+            return (
+                path.startsWith(prefix) &&
+                path.indexOf('/', prefix.length() + 1) == -1
+            );
+        }
+        return false;
+    }
+
     @Bean
+    @ConditionalOnMissingBean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.setAllowedOrigins(properties.getCors().getOrigins());

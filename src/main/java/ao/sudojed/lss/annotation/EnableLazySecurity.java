@@ -1,29 +1,38 @@
 package ao.sudojed.lss.annotation;
 
+import ao.sudojed.lss.config.LazySecurityAutoConfiguration;
 import java.lang.annotation.Documented;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
-
 import org.springframework.context.annotation.Import;
-
-import ao.sudojed.lss.config.LazySecurityAutoConfiguration;
 
 /**
  * Enables LazySpringSecurity in a Spring Boot application.
- * 
- * <h2>Basic Usage</h2>
+ *
+ * <h2>Basic Usage (Annotation-Driven)</h2>
  * <pre>{@code
  * @EnableLazySecurity(
- *     jwt = @JwtConfig(secret = "${app.jwt.secret}"),
- *     publicPaths = {"/api/public/**", "/health", "/swagger-ui/**"}
+ *     jwt = @JwtConfig(secret = "${app.jwt.secret}")
  * )
  * @SpringBootApplication
  * public class MyApplication { }
+ *
+ * // Use @Public and @Secured annotations on controllers
+ * @RestController
+ * public class MyController {
+ *     @Public
+ *     @GetMapping("/public-endpoint")
+ *     public String publicEndpoint() { return "No auth needed"; }
+ *
+ *     @Secured
+ *     @GetMapping("/protected-endpoint")
+ *     public String protectedEndpoint() { return "Auth required"; }
+ * }
  * }</pre>
- * 
- * <h2>Full Configuration</h2>
+ *
+ * <h2>Legacy Configuration (Optional)</h2>
  * <pre>{@code
  * @EnableLazySecurity(
  *     jwt = @JwtConfig(
@@ -32,12 +41,21 @@ import ao.sudojed.lss.config.LazySecurityAutoConfiguration;
  *         header = "Authorization",
  *         prefix = "Bearer "
  *     ),
- *     publicPaths = {"/api/auth/**", "/actuator/health"},
+ *     publicPaths = {"/legacy/public/**", "/actuator/health"}, // Optional - use @Public instead
  *     defaultRole = "USER",
  *     csrfEnabled = false,
  *     corsEnabled = true
  * )
  * }</pre>
+ *
+ * <h2>Migration Guide</h2>
+ * <p>Instead of manually listing paths in {@code publicPaths}, use annotations:</p>
+ * <ul>
+ *   <li>{@code @Public} - Makes endpoint public (no authentication required)</li>
+ *   <li>{@code @Secured} - Requires authentication (any authenticated user)</li>
+ *   <li>{@code @Secured("ROLE")} - Requires specific role</li>
+ *   <li>{@code @Register/@Login/@RefreshToken} - Automatically public</li>
+ * </ul>
  *
  * @author Sudojed Team
  */
@@ -46,7 +64,6 @@ import ao.sudojed.lss.config.LazySecurityAutoConfiguration;
 @Documented
 @Import(LazySecurityAutoConfiguration.class)
 public @interface EnableLazySecurity {
-
     /**
      * JWT configuration. Required for stateless authentication.
      */
@@ -55,6 +72,20 @@ public @interface EnableLazySecurity {
     /**
      * Public paths that do not require authentication.
      * Supports Ant patterns: /api/**, /public/*, etc.
+     *
+     * <p><strong>DEPRECATED:</strong> Use {@code @Public} annotation on controller methods instead.
+     * This provides better maintainability and automatic endpoint discovery.</p>
+     *
+     * <p>Examples:</p>
+     * <pre>{@code
+     * // OLD WAY (still works but not recommended)
+     * @EnableLazySecurity(publicPaths = {"/api/public/**"})
+     *
+     * // NEW WAY (recommended)
+     * @Public
+     * @GetMapping("/api/public/endpoint")
+     * public String endpoint() { return "public"; }
+     * }</pre>
      */
     String[] publicPaths() default {};
 
@@ -77,17 +108,19 @@ public @interface EnableLazySecurity {
     /**
      * Allowed origins for CORS.
      */
-    String[] corsOrigins() default {"*"};
+    String[] corsOrigins() default { "*" };
 
     /**
      * Allowed HTTP methods for CORS.
      */
-    String[] corsMethods() default {"GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"};
+    String[] corsMethods() default {
+        "GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS",
+    };
 
     /**
      * Allowed headers for CORS.
      */
-    String[] corsHeaders() default {"*"};
+    String[] corsHeaders() default { "*" };
 
     /**
      * Paths that require HTTPS.
