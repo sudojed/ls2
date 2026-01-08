@@ -1206,132 +1206,18 @@ public ResponseEntity<?> login(@RequestBody LoginRequest request) {
 
 **Total Migration Time: 2-3 days vs. 2-3 weeks for new implementation**
 
-## Architecture & Performance
 
-### **Zero Runtime Overhead**
-- All annotations processed at startup
-- No reflection during request processing
-- Direct Spring Security integration
-- Optimized JWT processing
 
-### **Scalability Features**
-- Distributed rate limiting with Redis
-- Clustered caching support
-- Stateless authentication
-- Horizontal scaling ready
 
-### **Enterprise Security**
-- OWASP compliance
-- Configurable security headers
-- Audit trail for compliance
-- Rate limiting for DDoS protection
 
-## Production Deployment
 
-### **Environment Configuration**
-```yaml
-# application-prod.yml
-spring:
-  security:
-    jwt:
-      secret: ${JWT_SECRET} # From environment/vault
-      expiration: 900000    # 15 minutes
-      refresh-expiration: 86400000 # 24 hours
-    
-    rate-limiting:
-      enabled: true
-      redis:
-        host: ${REDIS_HOST}
-        port: ${REDIS_PORT}
-    
-    audit:
-      enabled: true
-      storage: database
-      level: MEDIUM
 
-logging:
-  level:
-    ao.sudojed.lss.audit: INFO
-    org.springframework.security: WARN
-```
 
-### **Docker Integration**
-```dockerfile
-FROM openjdk:17-jre-slim
-COPY target/app.jar app.jar
-ENV JWT_SECRET=${JWT_SECRET}
-ENV REDIS_HOST=redis
-EXPOSE 8080
-ENTRYPOINT ["java", "-jar", "/app.jar"]
-```
 
-### **Kubernetes Deployment**
-```yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: secure-app
-spec:
-  replicas: 3
-  selector:
-    matchLabels:
-      app: secure-app
-  template:
-    metadata:
-      labels:
-        app: secure-app
-    spec:
-      containers:
-      - name: app
-        image: company/secure-app:latest
-        env:
-        - name: JWT_SECRET
-          valueFrom:
-            secretKeyRef:
-              name: jwt-secret
-              key: secret
-        ports:
-        - containerPort: 8080
-```
+## Support
 
-## Why LazySpringSecurity Changes Everything
-
-### **For Developers**
-- **5 minutes** to secure an entire application
-- **Zero boilerplate** authentication code
-- **Type-safe** security annotations
-- **IDE support** with auto-completion
-
-### **For Teams**
-- **Consistent** security patterns across projects
-- **Reduced** onboarding time for new developers
-- **Standardized** authentication flows
-- **Built-in** security best practices
-
-### **For Organizations**
-- **Faster** time to market
-- **Reduced** security vulnerabilities
-- **Compliance-ready** audit trails
-- **Enterprise-grade** scalability
-
-## What Industry Leaders Say
-
-*"We reduced our security setup time from 2 weeks to 2 hours. LazySpringSecurity just works."*  
-— **Sarah Chen, Lead Architect at TechCorp**
-
-*"Finally, Spring Security that doesn't require a PhD to configure. Our entire team adopted it in one sprint."*  
-— **Michael Rodriguez, CTO at StartupXYZ**
-
-*"The audit trail and rate limiting saved us from a major security incident. ROI was immediate."*  
-— **Dr. Amanda Foster, Security Director at FinanceSecure**
-
-## Community & Support
-
-- 📚 **[Complete Documentation](https://github.com/jedin01/ls2/wiki)**
-- 🎯 **[Example Projects](https://github.com/jedin01/ls2/tree/main/examples)**
-- 💬 **[Community Discord](https://discord.gg/lazyspringsecurity)**
-- 🐛 **[Issue Tracker](https://github.com/jedin01/ls2/issues)**
-- 📧 **Enterprise Support**: [enterprise@lazyspringsecurity.com]
+- [Issue Tracker](https://github.com/jedin01/ls2/issues)
+- [Example Project](example-starter-usage/)
 
 ## License
 
