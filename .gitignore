@@ -12,7 +12,7 @@ target/
 .settings
 .springBeans
 .sts4-cache
-
+example-starter-usage/
 demo-project/
 
 ### IntelliJ IDEA ###

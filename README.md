@@ -1,10 +1,28 @@
-# LazySpringSecurity (LSS)
+# LazySpringSecurity Starter 🚀
 
-**Annotation-driven security framework for Spring Boot applications**
+**The easiest way to add security to Spring Boot applications**
 
 [![JitPack](https://jitpack.io/v/jedin01/ls2.svg)](https://jitpack.io/#jedin01/ls2)
 
-LazySpringSecurity simplifies Spring Security configuration by using annotations to define endpoint security directly in your controllers. No manual configuration files, no complex setup - just clean, readable security annotations.
+Stop wrestling with Spring Security configuration! LazySpringSecurity provides **one dependency** that includes everything you need. Just add annotations to your controllers and you're done.
+
+```java
+// That's it! No configuration files needed.
+@Public @GetMapping("/health") 
+public String health() { return "OK"; }
+
+@Secured @GetMapping("/profile")  
+public User profile() { return currentUser; }
+```
+
+## 🎯 Why LazySpringSecurity Starter?
+
+✅ **ONE DEPENDENCY** - No Spring Security, JWT, or AOP deps to manage  
+✅ **ZERO CONFIGURATION** - Pure annotation-driven security  
+✅ **ZERO LEARNING CURVE** - Intuitive annotations anyone can understand  
+✅ **AUTO-DISCOVERY** - Automatically detects and configures security endpoints  
+✅ **PRODUCTION READY** - Built on Spring Security with enterprise features  
+✅ **SPRING BOOT 3+** - Uses latest Spring Boot and Java 17+
 
 ## Features
 
@@ -31,7 +49,7 @@ LazySpringSecurity simplifies Spring Security configuration by using annotations
 
 ## Quick Start
 
-### 1. Add Dependency
+### 1. Add ONE Dependency (That's Really It!)
 
 **Maven:**
 ```xml
@@ -44,8 +62,8 @@ LazySpringSecurity simplifies Spring Security configuration by using annotations
 
 <dependency>
     <groupId>com.github.jedin01</groupId>
-    <artifactId>ls2</artifactId>
-    <version>v1.0.0</version>
+    <artifactId>lazy-spring-security-starter</artifactId>
+    <version>v1.1.0</version>
 </dependency>
 ```
 
@@ -54,8 +72,18 @@ LazySpringSecurity simplifies Spring Security configuration by using annotations
 repositories {
     maven { url 'https://jitpack.io' }
 }
-implementation 'com.github.jedin01:ls2:v1.0.0'
+implementation 'com.github.jedin01:lazy-spring-security-starter:v1.1.0'
 ```
+
+> 🎉 **That's it!** The starter automatically includes:
+> - ✅ Spring Security 
+> - ✅ JWT Libraries (JJWT)
+> - ✅ AOP Support
+> - ✅ Validation
+> - ✅ Caching
+> - ✅ All LSS Components
+> 
+> **No manual dependency management needed!**
 
 ### 2. Enable LSS
 
@@ -467,11 +495,119 @@ class SecurityTest {
 - [Test Scripts](test-registration.sh) - Automated testing with curl
 - [Migration Guide](RESOLVED_ISSUES.md) - Upgrading from manual configuration
 
-## Requirements
+## 📦 What's Included in the Starter
+
+The `lazy-spring-security-starter` automatically brings in all necessary dependencies:
+
+| Dependency | Version | Purpose |
+|------------|---------|---------|
+| `spring-boot-starter-web` | Latest | Web framework |
+| `spring-boot-starter-security` | Latest | Security framework |
+| `spring-boot-starter-aop` | Latest | Method interception |
+| `spring-boot-starter-validation` | Latest | Input validation |
+| `spring-boot-starter-cache` | Latest | Caching support |
+| `jjwt-api` + `jjwt-impl` + `jjwt-jackson` | 0.12.6 | JWT support |
+| All LSS Core Components | Latest | Security annotations |
+
+**Zero dependency conflicts. Zero manual configuration. Just works!**
+
+## 🔄 Migration from Manual Dependencies
+
+If you were previously using manual dependencies, simply:
+
+### Before (Manual Dependencies):
+```xml
+<!-- You had to manage all these manually -->
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-security</artifactId>
+</dependency>
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-aop</artifactId>
+</dependency>
+<dependency>
+    <groupId>io.jsonwebtoken</groupId>
+    <artifactId>jjwt-api</artifactId>
+    <version>0.12.6</version>
+</dependency>
+<dependency>
+    <groupId>io.jsonwebtoken</groupId>
+    <artifactId>jjwt-impl</artifactId>
+    <version>0.12.6</version>
+</dependency>
+<dependency>
+    <groupId>io.jsonwebtoken</groupId>
+    <artifactId>jjwt-jackson</artifactId>
+    <version>0.12.6</version>
+</dependency>
+<dependency>
+    <groupId>com.github.jedin01</groupId>
+    <artifactId>ls2</artifactId>
+    <version>1.0.0</version>
+</dependency>
+```
+
+### After (Single Starter):
+```xml
+<!-- Just this one dependency -->
+<dependency>
+    <groupId>com.github.jedin01</groupId>
+    <artifactId>lazy-spring-security-starter</artifactId>
+    <version>v1.1.0</version>
+</dependency>
+```
+
+### Migration Steps:
+1. **Remove** all security-related dependencies from `pom.xml`
+2. **Add** the single starter dependency above  
+3. **Keep** your existing `@EnableLazySecurity` configuration - no code changes needed!
+4. **Test** that everything still works (it will!)
+
+## 🚀 Try the Complete Example
+
+Check out our working example that demonstrates the starter:
+
+```bash
+git clone https://github.com/jedin01/ls2.git
+cd ls2/example-starter-usage
+mvn spring-boot:run
+```
+
+Then test the endpoints:
+```bash
+# Public endpoint
+curl http://localhost:8080/health
+
+# Register new user  
+curl -X POST http://localhost:8080/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{"username":"demo","email":"demo@example.com","password":"demo123"}'
+
+# Login and get JWT token
+curl -X POST http://localhost:8080/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"username":"demo","password":"demo123"}'
+```
+
+## 📚 Documentation
+
+- [🎯 Starter Guide](STARTER_GUIDE.md) - Complete setup guide
+- [📖 Example Project](example-starter-usage/) - Working example
+- [🔧 Migration Guide](STARTER_GUIDE.md#migration-guide) - From manual deps
+- [🐛 Issue Tracker](https://github.com/jedin01/ls2/issues)
+
+## ⚡ Requirements
 
 - Java 17+
 - Spring Boot 3.0+
-- Spring Security 6.0+
+- **No other dependencies needed!** (All included in starter)
+
+## 📧 Support
+
+- 💬 [GitHub Discussions](https://github.com/jedin01/ls2/discussions)
+- 🐛 [Report Issues](https://github.com/jedin01/ls2/issues)  
+- 📧 [Email](mailto:abner@sudojed.ao)
 
 ## License
 

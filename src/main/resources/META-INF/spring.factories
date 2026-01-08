@@ -1,0 +1,7 @@
+# Auto Configuration
+org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
+ao.sudojed.lss.config.LazySecurityAutoConfiguration
+
+# Configuration Properties
+org.springframework.boot.autoconfigure.EnableConfigurationProperties=\
+ao.sudojed.lss.config.LazySecurityProperties
