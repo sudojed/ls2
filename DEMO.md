@@ -2,11 +2,36 @@
 
 ## 📍 Localização do Demo
 
-A aplicação de demonstração completa do LazySpringSecurity está localizada em um **repositório separado**:
+A aplicação de demonstração completa do LazySpringSecurity está disponível na **branch `demo-app`** deste repositório:
 
-🔗 **[https://github.com/jedin01/lss-demo-app](https://github.com/jedin01/lss-demo-app)**
+🔗 **Branch: `demo-app`**
 
-_(O repositório será criado em breve)_
+Para acessar:
+```bash
+git checkout demo-app
+cd example-app
+mvn spring-boot:run
+```
+
+### Extrair para Repositório Separado
+
+Para mover o demo para um repositório separado (recomendado):
+
+```bash
+# 1. Checkout da branch demo-app
+git checkout demo-app
+
+# 2. Copiar example-app/ para novo diretório
+cp -r example-app/ /path/to/lss-demo-app/
+
+# 3. Criar novo repositório
+cd /path/to/lss-demo-app/
+git init
+git add .
+git commit -m "Initial commit: LSS demo application"
+git remote add origin https://github.com/jedin01/lss-demo-app.git
+git push -u origin main
+```
 
 ## 🎯 Por Que em Repositório Separado?
 
